@@ -50,6 +50,12 @@
         "projectId": "4ee90ad1-5d4e-4f6f-a5de-eca4774435be"
       }
     },
-    "owner": "nicoperez"
+    "owner": "nicoperez",
+    "runtimeVersion": {
+      "policy": "appVersion"
+    },
+    "updates": {
+      "url": "https://u.expo.dev/4ee90ad1-5d4e-4f6f-a5de-eca4774435be"
+    }
   }
 }
