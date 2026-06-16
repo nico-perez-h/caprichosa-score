@@ -1,28 +1,6 @@
 import { FlatList, StyleSheet, Text, View } from 'react-native';
 
-const matches = [
-  {
-    id: '1',
-    homeTeam: 'Argentina',
-    awayTeam: 'México',
-    date: 'Próximamente',
-    tournament: 'Mundial 2026',
-  },
-  {
-    id: '2',
-    homeTeam: 'España',
-    awayTeam: 'Brasil',
-    date: 'Próximamente',
-    tournament: 'Mundial 2026',
-  },
-  {
-    id: '3',
-    homeTeam: 'Francia',
-    awayTeam: 'Alemania',
-    date: 'Próximamente',
-    tournament: 'Mundial 2026',
-  },
-];
+import { matches } from '@/data/matches';
 
 export default function MatchesScreen() {
   return (
@@ -38,7 +16,10 @@ export default function MatchesScreen() {
         contentContainerStyle={styles.list}
         renderItem={({ item }) => (
           <View style={styles.card}>
-            <Text style={styles.tournament}>{item.tournament}</Text>
+            <View style={styles.cardHeader}>
+              <Text style={styles.tournament}>{item.tournament}</Text>
+              <Text style={styles.status}>{item.status}</Text>
+            </View>
 
             <View style={styles.matchRow}>
               <Text style={styles.team}>{item.homeTeam}</Text>
@@ -84,11 +65,27 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#E5E7EB',
   },
+  cardHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 14,
+    gap: 12,
+  },
   tournament: {
+    flex: 1,
     fontSize: 13,
     fontWeight: '700',
     color: '#6B7280',
-    marginBottom: 12,
+  },
+  status: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#111827',
+    backgroundColor: '#F3F4F6',
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 999,
   },
   matchRow: {
     flexDirection: 'row',
