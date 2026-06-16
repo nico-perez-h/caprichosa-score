@@ -1,4 +1,6 @@
-export const matches = [
+import type { Match } from '@/types/match';
+
+export const matches: Match[] = [
   {
     id: '1',
     homeTeam: 'Argentina',

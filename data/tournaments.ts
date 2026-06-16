@@ -1,4 +1,6 @@
-export const tournaments = [
+import type { Tournament } from '@/types/tournament';
+
+export const tournaments: Tournament[] = [
   {
     id: 'world-cup-2026',
     name: 'Mundial 2026',
