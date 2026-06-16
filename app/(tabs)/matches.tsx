@@ -1,14 +1,15 @@
 import { FlatList, StyleSheet, Text, View } from 'react-native';
 
+import { ScreenHeader } from '@/components/ScreenHeader';
 import { matches } from '@/data/matches';
 
 export default function MatchesScreen() {
   return (
     <View style={styles.screen}>
-      <Text style={styles.title}>Partidos</Text>
-      <Text style={styles.subtitle}>
-        Aquí verás los partidos disponibles para predecir.
-      </Text>
+      <ScreenHeader
+        title="Partidos"
+        subtitle="Aquí verás los partidos disponibles para predecir."
+      />
 
       <FlatList
         data={matches}
@@ -41,17 +42,6 @@ const styles = StyleSheet.create({
     backgroundColor: '#F9FAFB',
     paddingHorizontal: 24,
     paddingTop: 72,
-  },
-  title: {
-    fontSize: 30,
-    fontWeight: '800',
-    color: '#111827',
-  },
-  subtitle: {
-    marginTop: 8,
-    fontSize: 16,
-    lineHeight: 24,
-    color: '#6B7280',
   },
   list: {
     paddingTop: 24,
