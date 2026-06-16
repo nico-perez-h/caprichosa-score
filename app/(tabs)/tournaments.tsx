@@ -1,27 +1,6 @@
 import { FlatList, StyleSheet, Text, View } from 'react-native';
 
-const tournaments = [
-  {
-    id: 'world-cup-2026',
-    name: 'Mundial 2026',
-    description: 'Predicciones y partidos del Mundial.',
-  },
-  {
-    id: 'champions-league',
-    name: 'Champions League',
-    description: 'Próximamente disponible.',
-  },
-  {
-    id: 'premier-league',
-    name: 'Premier League',
-    description: 'Próximamente disponible.',
-  },
-  {
-    id: 'libertadores',
-    name: 'Copa Libertadores',
-    description: 'Próximamente disponible.',
-  },
-];
+import { tournaments } from '@/data/tournaments';
 
 export default function TournamentsScreen() {
   return (
@@ -37,7 +16,11 @@ export default function TournamentsScreen() {
         contentContainerStyle={styles.list}
         renderItem={({ item }) => (
           <View style={styles.card}>
-            <Text style={styles.cardTitle}>{item.name}</Text>
+            <View style={styles.cardHeader}>
+              <Text style={styles.cardTitle}>{item.name}</Text>
+              <Text style={styles.status}>{item.status}</Text>
+            </View>
+
             <Text style={styles.cardText}>{item.description}</Text>
           </View>
         )}
@@ -76,13 +59,29 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#E5E7EB',
   },
+  cardHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 12,
+  },
   cardTitle: {
+    flex: 1,
     fontSize: 18,
     fontWeight: '700',
     color: '#111827',
   },
+  status: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#111827',
+    backgroundColor: '#F3F4F6',
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 999,
+  },
   cardText: {
-    marginTop: 6,
+    marginTop: 8,
     fontSize: 14,
     lineHeight: 20,
     color: '#6B7280',
