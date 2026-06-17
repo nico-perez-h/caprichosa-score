@@ -1,10 +1,15 @@
-import { useState } from "react";
-import { Alert, Pressable, StyleSheet, Text, View } from "react-native";
-import { router, useLocalSearchParams } from "expo-router";
+import { useState } from 'react';
+import { Alert, Pressable, StyleSheet, Text, View } from 'react-native';
+import { router, useLocalSearchParams } from 'expo-router';
 
-import { ScreenHeader } from "@/components/ScreenHeader";
-import { StatusBadge } from "@/components/StatusBadge";
-import { matches } from "@/data/matches";
+import { ScreenHeader } from '@/components/ScreenHeader';
+import { StatusBadge } from '@/components/StatusBadge';
+import { matches } from '@/data/matches';
+
+type SavedPrediction = {
+  homeScore: number;
+  awayScore: number;
+};
 
 export default function MatchDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -13,6 +18,7 @@ export default function MatchDetailScreen() {
 
   const [homeScore, setHomeScore] = useState(0);
   const [awayScore, setAwayScore] = useState(0);
+  const [savedPrediction, setSavedPrediction] = useState<SavedPrediction | null>(null);
 
   if (!match) {
     return (
@@ -45,9 +51,14 @@ export default function MatchDetailScreen() {
   }
 
   function savePrediction() {
+    setSavedPrediction({
+      homeScore,
+      awayScore,
+    });
+
     Alert.alert(
-      "Predicción lista",
-      `${currentMatch.homeTeam} ${homeScore} - ${awayScore} ${currentMatch.awayTeam}`,
+      'Predicción guardada',
+      `${currentMatch.homeTeam} ${homeScore} - ${awayScore} ${currentMatch.awayTeam}`
     );
   }
 
@@ -124,8 +135,21 @@ export default function MatchDetailScreen() {
         </View>
 
         <Pressable style={styles.primaryButton} onPress={savePrediction}>
-          <Text style={styles.primaryButtonText}>Guardar predicción</Text>
+          <Text style={styles.primaryButtonText}>
+            {savedPrediction ? 'Actualizar predicción' : 'Guardar predicción'}
+          </Text>
         </Pressable>
+
+        {savedPrediction ? (
+          <View style={styles.savedPredictionBox}>
+            <Text style={styles.savedPredictionTitle}>Predicción guardada</Text>
+
+            <Text style={styles.savedPredictionScore}>
+              {currentMatch.homeTeam} {savedPrediction.homeScore} -{' '}
+              {savedPrediction.awayScore} {currentMatch.awayTeam}
+            </Text>
+          </View>
+        ) : null}
       </View>
     </View>
   );
@@ -134,149 +158,166 @@ export default function MatchDetailScreen() {
 const styles = StyleSheet.create({
   screen: {
     flex: 1,
-    backgroundColor: "#F9FAFB",
+    backgroundColor: '#F9FAFB',
     paddingHorizontal: 24,
     paddingTop: 64,
   },
   backButton: {
-    alignSelf: "flex-start",
+    alignSelf: 'flex-start',
     marginBottom: 20,
   },
   backButtonText: {
     fontSize: 16,
-    fontWeight: "700",
-    color: "#111827",
+    fontWeight: '700',
+    color: '#111827',
   },
   matchCard: {
-    backgroundColor: "#FFFFFF",
+    backgroundColor: '#FFFFFF',
     borderRadius: 20,
     padding: 18,
     borderWidth: 1,
-    borderColor: "#E5E7EB",
+    borderColor: '#E5E7EB',
     marginBottom: 18,
   },
   matchHeader: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
     marginBottom: 20,
     gap: 12,
   },
   matchDate: {
     flex: 1,
     fontSize: 14,
-    fontWeight: "700",
-    color: "#6B7280",
+    fontWeight: '700',
+    color: '#6B7280',
   },
   teamsRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
   },
   teamBox: {
     flex: 1,
     minHeight: 80,
     borderRadius: 16,
-    backgroundColor: "#F9FAFB",
-    alignItems: "center",
-    justifyContent: "center",
+    backgroundColor: '#F9FAFB',
+    alignItems: 'center',
+    justifyContent: 'center',
     padding: 12,
   },
   teamName: {
     fontSize: 17,
-    fontWeight: "800",
-    color: "#111827",
-    textAlign: "center",
+    fontWeight: '800',
+    color: '#111827',
+    textAlign: 'center',
   },
   vs: {
     fontSize: 13,
-    fontWeight: "800",
-    color: "#9CA3AF",
+    fontWeight: '800',
+    color: '#9CA3AF',
     paddingHorizontal: 12,
   },
   predictionCard: {
-    backgroundColor: "#FFFFFF",
+    backgroundColor: '#FFFFFF',
     borderRadius: 20,
     padding: 18,
     borderWidth: 1,
-    borderColor: "#E5E7EB",
+    borderColor: '#E5E7EB',
   },
   predictionTitle: {
     fontSize: 18,
-    fontWeight: "800",
-    color: "#111827",
+    fontWeight: '800',
+    color: '#111827',
   },
   predictionText: {
     marginTop: 8,
     fontSize: 14,
     lineHeight: 20,
-    color: "#6B7280",
+    color: '#6B7280',
   },
   scoreSelector: {
     marginTop: 22,
     marginBottom: 22,
-    flexDirection: "row",
-    alignItems: "center",
+    flexDirection: 'row',
+    alignItems: 'center',
   },
   scoreColumn: {
     flex: 1,
-    alignItems: "center",
+    alignItems: 'center',
   },
   scoreTeam: {
     minHeight: 34,
     fontSize: 13,
-    fontWeight: "700",
-    color: "#6B7280",
-    textAlign: "center",
+    fontWeight: '700',
+    color: '#6B7280',
+    textAlign: 'center',
     marginBottom: 10,
   },
   scoreControls: {
-    flexDirection: "row",
-    alignItems: "center",
+    flexDirection: 'row',
+    alignItems: 'center',
     gap: 12,
   },
   scoreButton: {
     width: 38,
     height: 38,
     borderRadius: 999,
-    backgroundColor: "#F3F4F6",
-    alignItems: "center",
-    justifyContent: "center",
+    backgroundColor: '#F3F4F6',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   scoreButtonText: {
     fontSize: 24,
-    fontWeight: "800",
-    color: "#111827",
+    fontWeight: '800',
+    color: '#111827',
   },
   scoreNumber: {
     minWidth: 34,
     fontSize: 36,
-    fontWeight: "900",
-    color: "#111827",
-    textAlign: "center",
+    fontWeight: '900',
+    color: '#111827',
+    textAlign: 'center',
   },
   scoreSeparator: {
     fontSize: 28,
-    fontWeight: "900",
-    color: "#D1D5DB",
+    fontWeight: '900',
+    color: '#D1D5DB',
     paddingHorizontal: 8,
     marginTop: 34,
   },
   primaryButton: {
     height: 52,
     borderRadius: 14,
-    backgroundColor: "#111827",
-    alignItems: "center",
-    justifyContent: "center",
+    backgroundColor: '#111827',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   primaryButtonText: {
-    color: "#FFFFFF",
+    color: '#FFFFFF',
     fontSize: 16,
-    fontWeight: "800",
+    fontWeight: '800',
+  },
+  savedPredictionBox: {
+    marginTop: 16,
+    borderRadius: 16,
+    backgroundColor: '#F3F4F6',
+    padding: 14,
+  },
+  savedPredictionTitle: {
+    fontSize: 13,
+    fontWeight: '800',
+    color: '#6B7280',
+    marginBottom: 6,
+  },
+  savedPredictionScore: {
+    fontSize: 16,
+    fontWeight: '800',
+    color: '#111827',
   },
   notFoundTitle: {
     fontSize: 24,
-    fontWeight: "800",
-    color: "#111827",
+    fontWeight: '800',
+    color: '#111827',
   },
 });
