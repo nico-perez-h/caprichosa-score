@@ -1,6 +1,7 @@
 import { FlatList, StyleSheet, Text, View } from 'react-native';
 
 import { ScreenHeader } from '@/components/ScreenHeader';
+import { StatusBadge } from '@/components/StatusBadge';
 import { matches } from '@/data/matches';
 
 export default function MatchesScreen() {
@@ -19,7 +20,7 @@ export default function MatchesScreen() {
           <View style={styles.card}>
             <View style={styles.cardHeader}>
               <Text style={styles.tournament}>{item.tournament}</Text>
-              <Text style={styles.status}>{item.status}</Text>
+              <StatusBadge label={item.status} />
             </View>
 
             <View style={styles.matchRow}>
@@ -67,15 +68,6 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: '700',
     color: '#6B7280',
-  },
-  status: {
-    fontSize: 12,
-    fontWeight: '700',
-    color: '#111827',
-    backgroundColor: '#F3F4F6',
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    borderRadius: 999,
   },
   matchRow: {
     flexDirection: 'row',
