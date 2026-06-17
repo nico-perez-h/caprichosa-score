@@ -1,22 +1,33 @@
-import { StyleSheet, Text, View } from 'react-native';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { StatusBadge } from '@/components/StatusBadge';
 import type { Tournament } from '@/types/tournament';
 
 type TournamentCardProps = {
   tournament: Tournament;
+  onPress?: () => void;
 };
 
-export function TournamentCard({ tournament }: TournamentCardProps) {
+export function TournamentCard({ tournament, onPress }: TournamentCardProps) {
+  const isDisabled = tournament.status !== 'Disponible';
+
   return (
-    <View style={styles.card}>
+    <Pressable
+      disabled={isDisabled}
+      onPress={onPress}
+      style={({ pressed }) => [
+        styles.card,
+        isDisabled && styles.disabledCard,
+        pressed && styles.pressedCard,
+      ]}
+    >
       <View style={styles.cardHeader}>
         <Text style={styles.cardTitle}>{tournament.name}</Text>
         <StatusBadge label={tournament.status} />
       </View>
 
       <Text style={styles.cardText}>{tournament.description}</Text>
-    </View>
+    </Pressable>
   );
 }
 
@@ -27,6 +38,13 @@ const styles = StyleSheet.create({
     padding: 18,
     borderWidth: 1,
     borderColor: '#E5E7EB',
+  },
+  pressedCard: {
+    opacity: 0.8,
+    transform: [{ scale: 0.99 }],
+  },
+  disabledCard: {
+    opacity: 0.65,
   },
   cardHeader: {
     flexDirection: 'row',

@@ -1,3 +1,4 @@
+import { router } from 'expo-router';
 import { FlatList, StyleSheet, View } from 'react-native';
 
 import { ScreenHeader } from '@/components/ScreenHeader';
@@ -16,7 +17,12 @@ export default function TournamentsScreen() {
         data={tournaments}
         keyExtractor={(item) => item.id}
         contentContainerStyle={styles.list}
-        renderItem={({ item }) => <TournamentCard tournament={item} />}
+        renderItem={({ item }) => (
+          <TournamentCard
+            tournament={item}
+            onPress={() => router.push(`/tournament/${item.id}` as never)}
+          />
+        )}
       />
     </View>
   );
