@@ -1,15 +1,22 @@
-import { StyleSheet, Text, View } from 'react-native';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { StatusBadge } from '@/components/StatusBadge';
 import type { Match } from '@/types/match';
 
 type MatchCardProps = {
   match: Match;
+  onPress?: () => void;
 };
 
-export function MatchCard({ match }: MatchCardProps) {
+export function MatchCard({ match, onPress }: MatchCardProps) {
   return (
-    <View style={styles.card}>
+    <Pressable
+      onPress={onPress}
+      style={({ pressed }) => [
+        styles.card,
+        pressed && styles.pressedCard,
+      ]}
+    >
       <View style={styles.cardHeader}>
         <Text style={styles.tournament}>{match.tournament}</Text>
         <StatusBadge label={match.status} />
@@ -22,7 +29,7 @@ export function MatchCard({ match }: MatchCardProps) {
       </View>
 
       <Text style={styles.date}>{match.date}</Text>
-    </View>
+    </Pressable>
   );
 }
 
@@ -33,6 +40,10 @@ const styles = StyleSheet.create({
     padding: 18,
     borderWidth: 1,
     borderColor: '#E5E7EB',
+  },
+  pressedCard: {
+    opacity: 0.8,
+    transform: [{ scale: 0.99 }],
   },
   cardHeader: {
     flexDirection: 'row',

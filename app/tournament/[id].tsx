@@ -1,17 +1,19 @@
-import { router, useLocalSearchParams } from 'expo-router';
-import { FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
+import { router, useLocalSearchParams } from "expo-router";
+import { FlatList, Pressable, StyleSheet, Text, View } from "react-native";
 
-import { MatchCard } from '@/components/MatchCard';
-import { ScreenHeader } from '@/components/ScreenHeader';
-import { StatusBadge } from '@/components/StatusBadge';
-import { matches } from '@/data/matches';
-import { tournaments } from '@/data/tournaments';
+import { MatchCard } from "@/components/MatchCard";
+import { ScreenHeader } from "@/components/ScreenHeader";
+import { StatusBadge } from "@/components/StatusBadge";
+import { matches } from "@/data/matches";
+import { tournaments } from "@/data/tournaments";
 
 export default function TournamentDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
 
   const tournament = tournaments.find((item) => item.id === id);
-  const tournamentMatches = matches.filter((match) => match.tournamentId === id);
+  const tournamentMatches = matches.filter(
+    (match) => match.tournamentId === id,
+  );
 
   if (!tournament) {
     return (
@@ -45,7 +47,8 @@ export default function TournamentDetailScreen() {
         </View>
 
         <Text style={styles.summaryText}>
-          Aquí verás los partidos de este torneo y luego podrás hacer tus predicciones.
+          Aquí verás los partidos de este torneo y luego podrás hacer tus
+          predicciones.
         </Text>
       </View>
 
@@ -55,7 +58,12 @@ export default function TournamentDetailScreen() {
         data={tournamentMatches}
         keyExtractor={(item) => item.id}
         contentContainerStyle={styles.list}
-        renderItem={({ item }) => <MatchCard match={item} />}
+        renderItem={({ item }) => (
+          <MatchCard
+            match={item}
+            onPress={() => router.push(`/match/${item.id}` as never)}
+          />
+        )}
         ListEmptyComponent={
           <Text style={styles.emptyText}>
             Todavía no hay partidos para este torneo.
@@ -69,64 +77,64 @@ export default function TournamentDetailScreen() {
 const styles = StyleSheet.create({
   screen: {
     flex: 1,
-    backgroundColor: '#F9FAFB',
+    backgroundColor: "#F9FAFB",
     paddingHorizontal: 24,
     paddingTop: 64,
   },
   backButton: {
-    alignSelf: 'flex-start',
+    alignSelf: "flex-start",
     marginBottom: 20,
   },
   backButtonText: {
     fontSize: 16,
-    fontWeight: '700',
-    color: '#111827',
+    fontWeight: "700",
+    color: "#111827",
   },
   summaryCard: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: "#FFFFFF",
     borderRadius: 20,
     padding: 18,
     borderWidth: 1,
-    borderColor: '#E5E7EB',
+    borderColor: "#E5E7EB",
     marginBottom: 24,
   },
   summaryHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
     gap: 12,
     marginBottom: 16,
   },
   summaryTitle: {
     flex: 1,
     fontSize: 18,
-    fontWeight: '800',
-    color: '#111827',
+    fontWeight: "800",
+    color: "#111827",
   },
   summaryRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
     marginBottom: 12,
   },
   summaryLabel: {
     fontSize: 15,
-    color: '#6B7280',
+    color: "#6B7280",
   },
   summaryValue: {
     fontSize: 22,
-    fontWeight: '800',
-    color: '#111827',
+    fontWeight: "800",
+    color: "#111827",
   },
   summaryText: {
     fontSize: 14,
     lineHeight: 20,
-    color: '#6B7280',
+    color: "#6B7280",
   },
   sectionTitle: {
     fontSize: 20,
-    fontWeight: '800',
-    color: '#111827',
+    fontWeight: "800",
+    color: "#111827",
     marginBottom: 12,
   },
   list: {
@@ -136,11 +144,11 @@ const styles = StyleSheet.create({
   emptyText: {
     fontSize: 15,
     lineHeight: 22,
-    color: '#6B7280',
+    color: "#6B7280",
   },
   notFoundTitle: {
     fontSize: 24,
-    fontWeight: '800',
-    color: '#111827',
+    fontWeight: "800",
+    color: "#111827",
   },
 });

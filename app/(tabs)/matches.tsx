@@ -1,3 +1,4 @@
+import { router } from 'expo-router';
 import { FlatList, StyleSheet, View } from 'react-native';
 
 import { MatchCard } from '@/components/MatchCard';
@@ -16,7 +17,12 @@ export default function MatchesScreen() {
         data={matches}
         keyExtractor={(item) => item.id}
         contentContainerStyle={styles.list}
-        renderItem={({ item }) => <MatchCard match={item} />}
+        renderItem={({ item }) => (
+          <MatchCard
+            match={item}
+            onPress={() => router.push(`/match/${item.id}` as never)}
+          />
+        )}
       />
     </View>
   );
