@@ -31,12 +31,22 @@ export default function TournamentDetailScreen() {
         <Text style={styles.backButtonText}>← Volver</Text>
       </Pressable>
 
-      <View style={styles.headerRow}>
-        <View style={styles.headerText}>
-          <ScreenHeader title={tournament.name} subtitle={tournament.description} />
+      <ScreenHeader title={tournament.name} subtitle={tournament.description} />
+
+      <View style={styles.summaryCard}>
+        <View style={styles.summaryHeader}>
+          <Text style={styles.summaryTitle}>Resumen</Text>
+          <StatusBadge label={tournament.status} />
         </View>
 
-        <StatusBadge label={tournament.status} />
+        <View style={styles.summaryRow}>
+          <Text style={styles.summaryLabel}>Partidos disponibles</Text>
+          <Text style={styles.summaryValue}>{tournamentMatches.length}</Text>
+        </View>
+
+        <Text style={styles.summaryText}>
+          Aquí verás los partidos de este torneo y luego podrás hacer tus predicciones.
+        </Text>
       </View>
 
       <Text style={styles.sectionTitle}>Partidos</Text>
@@ -47,7 +57,9 @@ export default function TournamentDetailScreen() {
         contentContainerStyle={styles.list}
         renderItem={({ item }) => <MatchCard match={item} />}
         ListEmptyComponent={
-          <Text style={styles.emptyText}>Todavía no hay partidos para este torneo.</Text>
+          <Text style={styles.emptyText}>
+            Todavía no hay partidos para este torneo.
+          </Text>
         }
       />
     </View>
@@ -70,11 +82,46 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: '#111827',
   },
-  headerRow: {
-    marginBottom: 4,
+  summaryCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 20,
+    padding: 18,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+    marginBottom: 24,
   },
-  headerText: {
-    marginBottom: 4,
+  summaryHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 12,
+    marginBottom: 16,
+  },
+  summaryTitle: {
+    flex: 1,
+    fontSize: 18,
+    fontWeight: '800',
+    color: '#111827',
+  },
+  summaryRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 12,
+  },
+  summaryLabel: {
+    fontSize: 15,
+    color: '#6B7280',
+  },
+  summaryValue: {
+    fontSize: 22,
+    fontWeight: '800',
+    color: '#111827',
+  },
+  summaryText: {
+    fontSize: 14,
+    lineHeight: 20,
+    color: '#6B7280',
   },
   sectionTitle: {
     fontSize: 20,
