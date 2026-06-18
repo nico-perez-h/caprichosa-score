@@ -1,5 +1,5 @@
 import type { Prediction } from '../contexts/PredictionsContext';
-import type { Match } from '@/types/match';
+import type { Match } from '../types/match';
 
 type MatchOutcome = 'home' | 'away' | 'draw';
 
@@ -47,4 +47,16 @@ export function calculatePredictionPoints(
   }
 
   return 0;
+}
+
+export function calculateTotalPredictionPoints(
+  matches: Match[],
+  predictions: Record<string, Prediction>
+) {
+  return matches.reduce((totalPoints, match) => {
+    const prediction = predictions[match.id] ?? null;
+    const points = calculatePredictionPoints(match, prediction);
+
+    return totalPoints + (points ?? 0);
+  }, 0);
 }

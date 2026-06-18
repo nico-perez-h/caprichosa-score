@@ -5,12 +5,14 @@ import { ScreenHeader } from '@/components/ScreenHeader';
 import { matches } from '@/data/matches';
 import { tournaments } from '@/data/tournaments';
 import { usePredictions } from '../../contexts/PredictionsContext';
+import { calculateTotalPredictionPoints } from '../../utils/scoring';
 
 export default function HomeScreen() {
   const { predictions } = usePredictions();
 
   const totalMatches = matches.length;
   const totalPredictions = Object.keys(predictions).length;
+  const totalPoints = calculateTotalPredictionPoints(matches, predictions);
   const activeTournaments = tournaments.filter(
     (tournament) => tournament.status === 'Disponible'
   ).length;
@@ -26,19 +28,24 @@ export default function HomeScreen() {
 
         <ScreenHeader
           title="Caprichosa Score"
-          subtitle="Predice partidos, compite con tus amigos y sigue tus resultados."
+          subtitle="Predice partidos, compite con tus amigos y sigue tus puntos."
         />
       </View>
 
       <View style={styles.statsGrid}>
         <View style={styles.statCard}>
-          <Text style={styles.statNumber}>{totalMatches}</Text>
-          <Text style={styles.statLabel}>Partidos disponibles</Text>
+          <Text style={styles.statNumber}>{totalPoints}</Text>
+          <Text style={styles.statLabel}>Puntos acumulados</Text>
         </View>
 
         <View style={styles.statCard}>
           <Text style={styles.statNumber}>{totalPredictions}</Text>
           <Text style={styles.statLabel}>Predicciones guardadas</Text>
+        </View>
+
+        <View style={styles.statCard}>
+          <Text style={styles.statNumber}>{totalMatches}</Text>
+          <Text style={styles.statLabel}>Partidos disponibles</Text>
         </View>
 
         <View style={styles.statCard}>
@@ -48,32 +55,33 @@ export default function HomeScreen() {
       </View>
 
       <View style={styles.nextCard}>
-        <Text style={styles.nextTitle}>Próximo paso</Text>
+        <Text style={styles.nextTitle}>Tu progreso</Text>
         <Text style={styles.nextText}>
-          Entra a un partido, elige el resultado que crees que pasará y guarda tu predicción.
+          Tus puntos se calculan cuando un partido ya tiene resultado final.
+          Resultado exacto suma 3 puntos y acertar ganador o empate suma 1 punto.
         </Text>
 
         <Pressable
           style={styles.primaryButton}
-          onPress={() => router.push('/matches' as never)}
+          onPress={() => router.push('/predictions' as never)}
         >
-          <Text style={styles.primaryButtonText}>Ver partidos</Text>
+          <Text style={styles.primaryButtonText}>Ver mis predicciones</Text>
         </Pressable>
       </View>
 
       <View style={styles.actionsRow}>
         <Pressable
           style={styles.secondaryButton}
-          onPress={() => router.push('/tournaments' as never)}
+          onPress={() => router.push('/matches' as never)}
         >
-          <Text style={styles.secondaryButtonText}>Torneos</Text>
+          <Text style={styles.secondaryButtonText}>Partidos</Text>
         </Pressable>
 
         <Pressable
           style={styles.secondaryButton}
-          onPress={() => router.push('/predictions' as never)}
+          onPress={() => router.push('/tournaments' as never)}
         >
-          <Text style={styles.secondaryButtonText}>Mis predicciones</Text>
+          <Text style={styles.secondaryButtonText}>Torneos</Text>
         </Pressable>
       </View>
     </ScrollView>
