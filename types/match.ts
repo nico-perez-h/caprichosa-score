@@ -6,6 +6,10 @@ export type Match = {
   homeTeam: string;
   awayTeam: string;
   date: string;
+  kickoffTime: string;
   tournament: string;
+  group: string;
+  stadium: string;
+  city: string;
   status: MatchStatus;
 };

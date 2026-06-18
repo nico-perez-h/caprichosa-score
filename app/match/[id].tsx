@@ -13,10 +13,8 @@ export default function MatchDetailScreen() {
 
   const match = matches.find((item) => item.id === id);
 
-  const {
-    getPrediction,
-    savePrediction: savePredictionInStore,
-  } = usePredictions();
+  const { getPrediction, savePrediction: savePredictionInStore } =
+    usePredictions();
 
   const initialPrediction = match ? getPrediction(match.id) : null;
 
@@ -79,12 +77,20 @@ export default function MatchDetailScreen() {
 
       <ScreenHeader
         title={`${currentMatch.homeTeam} vs ${currentMatch.awayTeam}`}
-        subtitle={currentMatch.tournament}
+        subtitle={`${currentMatch.tournament} · ${currentMatch.group}`}
       />
 
       <View style={styles.matchCard}>
         <View style={styles.matchHeader}>
-          <Text style={styles.matchDate}>{currentMatch.date}</Text>
+          <View style={styles.matchInfo}>
+            <Text style={styles.matchDate}>
+              {currentMatch.date} · {currentMatch.kickoffTime}
+            </Text>
+            <Text style={styles.matchPlace}>
+              {currentMatch.stadium} · {currentMatch.city}
+            </Text>
+          </View>
+
           <StatusBadge label={currentMatch.status} />
         </View>
 
@@ -148,10 +154,17 @@ const styles = StyleSheet.create({
     marginBottom: 20,
     gap: 12,
   },
-  matchDate: {
+  matchInfo: {
     flex: 1,
+  },
+  matchDate: {
     fontSize: 14,
-    fontWeight: '700',
+    fontWeight: '800',
+    color: '#111827',
+  },
+  matchPlace: {
+    marginTop: 4,
+    fontSize: 13,
     color: '#6B7280',
   },
   teamsRow: {

@@ -21,7 +21,11 @@ export function MatchCard({ match, savedPrediction, onPress }: MatchCardProps) {
       style={({ pressed }) => [styles.card, pressed && styles.pressedCard]}
     >
       <View style={styles.cardHeader}>
-        <Text style={styles.tournament}>{match.tournament}</Text>
+        <View style={styles.headerText}>
+          <Text style={styles.tournament}>{match.tournament}</Text>
+          <Text style={styles.group}>{match.group}</Text>
+        </View>
+
         <StatusBadge label={match.status} />
       </View>
 
@@ -31,7 +35,14 @@ export function MatchCard({ match, savedPrediction, onPress }: MatchCardProps) {
         <Text style={styles.team}>{match.awayTeam}</Text>
       </View>
 
-      <Text style={styles.date}>{match.date}</Text>
+      <View style={styles.infoBox}>
+        <Text style={styles.infoText}>
+          {match.date} · {match.kickoffTime}
+        </Text>
+        <Text style={styles.infoText}>
+          {match.stadium} · {match.city}
+        </Text>
+      </View>
 
       {savedPrediction ? (
         <View style={styles.predictionBox}>
@@ -65,11 +76,19 @@ const styles = StyleSheet.create({
     marginBottom: 14,
     gap: 12,
   },
-  tournament: {
+  headerText: {
     flex: 1,
+  },
+  tournament: {
     fontSize: 13,
     fontWeight: '700',
     color: '#6B7280',
+  },
+  group: {
+    marginTop: 2,
+    fontSize: 13,
+    fontWeight: '800',
+    color: '#111827',
   },
   matchRow: {
     flexDirection: 'row',
@@ -89,9 +108,12 @@ const styles = StyleSheet.create({
     color: '#9CA3AF',
     paddingHorizontal: 12,
   },
-  date: {
-    marginTop: 12,
-    fontSize: 14,
+  infoBox: {
+    marginTop: 14,
+    gap: 4,
+  },
+  infoText: {
+    fontSize: 13,
     color: '#6B7280',
     textAlign: 'center',
   },
