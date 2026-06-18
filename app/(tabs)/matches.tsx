@@ -4,8 +4,11 @@ import { FlatList, StyleSheet, View } from 'react-native';
 import { MatchCard } from '@/components/MatchCard';
 import { ScreenHeader } from '@/components/ScreenHeader';
 import { matches } from '@/data/matches';
+import { usePredictions } from '../../contexts/PredictionsContext';
 
 export default function MatchesScreen() {
+  const { getPrediction } = usePredictions();
+
   return (
     <View style={styles.screen}>
       <ScreenHeader
@@ -20,6 +23,7 @@ export default function MatchesScreen() {
         renderItem={({ item }) => (
           <MatchCard
             match={item}
+            savedPrediction={getPrediction(item.id)}
             onPress={() => router.push(`/match/${item.id}` as never)}
           />
         )}

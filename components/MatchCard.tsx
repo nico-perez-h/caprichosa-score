@@ -3,19 +3,22 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { StatusBadge } from '@/components/StatusBadge';
 import type { Match } from '@/types/match';
 
+type MatchPrediction = {
+  homeScore: number;
+  awayScore: number;
+};
+
 type MatchCardProps = {
   match: Match;
+  savedPrediction?: MatchPrediction | null;
   onPress?: () => void;
 };
 
-export function MatchCard({ match, onPress }: MatchCardProps) {
+export function MatchCard({ match, savedPrediction, onPress }: MatchCardProps) {
   return (
     <Pressable
       onPress={onPress}
-      style={({ pressed }) => [
-        styles.card,
-        pressed && styles.pressedCard,
-      ]}
+      style={({ pressed }) => [styles.card, pressed && styles.pressedCard]}
     >
       <View style={styles.cardHeader}>
         <Text style={styles.tournament}>{match.tournament}</Text>
@@ -29,6 +32,16 @@ export function MatchCard({ match, onPress }: MatchCardProps) {
       </View>
 
       <Text style={styles.date}>{match.date}</Text>
+
+      {savedPrediction ? (
+        <View style={styles.predictionBox}>
+          <Text style={styles.predictionLabel}>Predicción guardada</Text>
+          <Text style={styles.predictionScore}>
+            {match.homeTeam} {savedPrediction.homeScore} -{' '}
+            {savedPrediction.awayScore} {match.awayTeam}
+          </Text>
+        </View>
+      ) : null}
     </Pressable>
   );
 }
@@ -81,5 +94,22 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#6B7280',
     textAlign: 'center',
+  },
+  predictionBox: {
+    marginTop: 14,
+    borderRadius: 14,
+    backgroundColor: '#F3F4F6',
+    padding: 12,
+  },
+  predictionLabel: {
+    fontSize: 12,
+    fontWeight: '800',
+    color: '#6B7280',
+    marginBottom: 4,
+  },
+  predictionScore: {
+    fontSize: 14,
+    fontWeight: '800',
+    color: '#111827',
   },
 });

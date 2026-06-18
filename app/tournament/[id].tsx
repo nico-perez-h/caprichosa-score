@@ -7,8 +7,12 @@ import { StatusBadge } from "@/components/StatusBadge";
 import { matches } from "@/data/matches";
 import { tournaments } from "@/data/tournaments";
 
+import { usePredictions } from "../../contexts/PredictionsContext";
+
 export default function TournamentDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
+
+  const { getPrediction } = usePredictions();
 
   const tournament = tournaments.find((item) => item.id === id);
   const tournamentMatches = matches.filter(
@@ -61,6 +65,7 @@ export default function TournamentDetailScreen() {
         renderItem={({ item }) => (
           <MatchCard
             match={item}
+            savedPrediction={getPrediction(item.id)}
             onPress={() => router.push(`/match/${item.id}` as never)}
           />
         )}
