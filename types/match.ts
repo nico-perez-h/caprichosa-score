@@ -12,4 +12,6 @@ export type Match = {
   stadium: string;
   city: string;
   status: MatchStatus;
+  actualHomeScore?: number;
+  actualAwayScore?: number;
 };

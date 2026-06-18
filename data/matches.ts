@@ -12,7 +12,9 @@ export const matches: Match[] = [
     group: 'Grupo A',
     stadium: 'Estadio por definir',
     city: 'Ciudad por definir',
-    status: 'Por jugar',
+    status: 'Finalizado',
+    actualHomeScore: 2,
+    actualAwayScore: 1,
   },
   {
     id: '2',

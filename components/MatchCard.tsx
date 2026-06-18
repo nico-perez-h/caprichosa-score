@@ -2,8 +2,10 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { StatusBadge } from '@/components/StatusBadge';
 import type { Match } from '@/types/match';
+import { calculatePredictionPoints } from '@/utils/scoring';
 
 type MatchPrediction = {
+  matchId?: string;
   homeScore: number;
   awayScore: number;
 };
@@ -15,6 +17,20 @@ type MatchCardProps = {
 };
 
 export function MatchCard({ match, savedPrediction, onPress }: MatchCardProps) {
+  const points = calculatePredictionPoints(
+    match,
+    savedPrediction
+      ? {
+          matchId: savedPrediction.matchId ?? match.id,
+          homeScore: savedPrediction.homeScore,
+          awayScore: savedPrediction.awayScore,
+        }
+      : null
+  );
+
+  const hasFinalScore =
+    match.actualHomeScore !== undefined && match.actualAwayScore !== undefined;
+
   return (
     <Pressable
       onPress={onPress}
@@ -35,6 +51,16 @@ export function MatchCard({ match, savedPrediction, onPress }: MatchCardProps) {
         <Text style={styles.team}>{match.awayTeam}</Text>
       </View>
 
+      {hasFinalScore ? (
+        <View style={styles.resultBox}>
+          <Text style={styles.resultLabel}>Resultado final</Text>
+          <Text style={styles.resultScore}>
+            {match.homeTeam} {match.actualHomeScore} - {match.actualAwayScore}{' '}
+            {match.awayTeam}
+          </Text>
+        </View>
+      ) : null}
+
       <View style={styles.infoBox}>
         <Text style={styles.infoText}>
           {match.date} · {match.kickoffTime}
@@ -51,6 +77,12 @@ export function MatchCard({ match, savedPrediction, onPress }: MatchCardProps) {
             {match.homeTeam} {savedPrediction.homeScore} -{' '}
             {savedPrediction.awayScore} {match.awayTeam}
           </Text>
+
+          {points !== null ? (
+            <Text style={styles.pointsText}>{points} puntos</Text>
+          ) : (
+            <Text style={styles.pendingPointsText}>Puntos pendientes</Text>
+          )}
         </View>
       ) : null}
     </Pressable>
@@ -108,6 +140,23 @@ const styles = StyleSheet.create({
     color: '#9CA3AF',
     paddingHorizontal: 12,
   },
+  resultBox: {
+    marginTop: 14,
+    borderRadius: 14,
+    backgroundColor: '#ECFDF5',
+    padding: 12,
+  },
+  resultLabel: {
+    fontSize: 12,
+    fontWeight: '800',
+    color: '#047857',
+    marginBottom: 4,
+  },
+  resultScore: {
+    fontSize: 14,
+    fontWeight: '900',
+    color: '#065F46',
+  },
   infoBox: {
     marginTop: 14,
     gap: 4,
@@ -133,5 +182,17 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '800',
     color: '#111827',
+  },
+  pointsText: {
+    marginTop: 6,
+    fontSize: 14,
+    fontWeight: '900',
+    color: '#047857',
+  },
+  pendingPointsText: {
+    marginTop: 6,
+    fontSize: 13,
+    fontWeight: '800',
+    color: '#6B7280',
   },
 });
