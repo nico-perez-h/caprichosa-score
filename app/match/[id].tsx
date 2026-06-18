@@ -2,23 +2,30 @@ import { router, useLocalSearchParams } from 'expo-router';
 import { useState } from 'react';
 import { Alert, Pressable, StyleSheet, Text, View } from 'react-native';
 
-import {
-  PredictionCard,
-  type SavedPrediction,
-} from '@/components/PredictionCard';
+import { PredictionCard } from '@/components/PredictionCard';
 import { ScreenHeader } from '@/components/ScreenHeader';
 import { StatusBadge } from '@/components/StatusBadge';
 import { matches } from '@/data/matches';
+import { usePredictions } from '../../contexts/PredictionsContext';
 
 export default function MatchDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
 
   const match = matches.find((item) => item.id === id);
 
-  const [homeScore, setHomeScore] = useState(0);
-  const [awayScore, setAwayScore] = useState(0);
-  const [savedPrediction, setSavedPrediction] =
-    useState<SavedPrediction | null>(null);
+  const {
+    getPrediction,
+    savePrediction: savePredictionInStore,
+  } = usePredictions();
+
+  const initialPrediction = match ? getPrediction(match.id) : null;
+
+  const [homeScore, setHomeScore] = useState(
+    initialPrediction?.homeScore ?? 0
+  );
+  const [awayScore, setAwayScore] = useState(
+    initialPrediction?.awayScore ?? 0
+  );
 
   if (!match) {
     return (
@@ -33,6 +40,7 @@ export default function MatchDetailScreen() {
   }
 
   const currentMatch = match;
+  const savedPrediction = getPrediction(currentMatch.id);
 
   function decreaseHomeScore() {
     setHomeScore((currentScore) => Math.max(currentScore - 1, 0));
@@ -51,7 +59,8 @@ export default function MatchDetailScreen() {
   }
 
   function savePrediction() {
-    setSavedPrediction({
+    savePredictionInStore({
+      matchId: currentMatch.id,
       homeScore,
       awayScore,
     });
