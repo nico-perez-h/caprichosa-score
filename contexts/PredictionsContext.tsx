@@ -21,6 +21,7 @@ type PredictionsContextValue = {
   predictions: PredictionsByMatch;
   getPrediction: (matchId: string) => Prediction | null;
   savePrediction: (prediction: Prediction) => void;
+  deletePrediction: (matchId: string) => void;
 };
 
 const PredictionsContext = createContext<PredictionsContextValue | undefined>(
@@ -56,22 +57,42 @@ export function PredictionsProvider({ children }: PredictionsProviderProps) {
     loadPredictions();
   }, []);
 
+  function persistPredictions(updatedPredictions: PredictionsByMatch) {
+    AsyncStorage.setItem(
+      PREDICTIONS_STORAGE_KEY,
+      JSON.stringify(updatedPredictions)
+    ).catch(() => {});
+  }
+
   function getPrediction(matchId: string) {
     return predictions[matchId] ?? null;
   }
 
   function savePrediction(prediction: Prediction) {
-    const updatedPredictions = {
-      ...predictions,
-      [prediction.matchId]: prediction,
-    };
+    setPredictions((currentPredictions) => {
+      const updatedPredictions = {
+        ...currentPredictions,
+        [prediction.matchId]: prediction,
+      };
 
-    setPredictions(updatedPredictions);
+      persistPredictions(updatedPredictions);
 
-    AsyncStorage.setItem(
-      PREDICTIONS_STORAGE_KEY,
-      JSON.stringify(updatedPredictions)
-    ).catch(() => {});
+      return updatedPredictions;
+    });
+  }
+
+  function deletePrediction(matchId: string) {
+    setPredictions((currentPredictions) => {
+      const updatedPredictions = {
+        ...currentPredictions,
+      };
+
+      delete updatedPredictions[matchId];
+
+      persistPredictions(updatedPredictions);
+
+      return updatedPredictions;
+    });
   }
 
   return (
@@ -80,6 +101,7 @@ export function PredictionsProvider({ children }: PredictionsProviderProps) {
         predictions,
         getPrediction,
         savePrediction,
+        deletePrediction,
       }}
     >
       {children}

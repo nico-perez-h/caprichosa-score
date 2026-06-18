@@ -13,17 +13,16 @@ export default function MatchDetailScreen() {
 
   const match = matches.find((item) => item.id === id);
 
-  const { getPrediction, savePrediction: savePredictionInStore } =
-    usePredictions();
+  const {
+    getPrediction,
+    savePrediction: savePredictionInStore,
+    deletePrediction: deletePredictionInStore,
+  } = usePredictions();
 
   const savedPrediction = match ? getPrediction(match.id) : null;
 
-  const [homeScore, setHomeScore] = useState(
-    savedPrediction?.homeScore ?? 0
-  );
-  const [awayScore, setAwayScore] = useState(
-    savedPrediction?.awayScore ?? 0
-  );
+  const [homeScore, setHomeScore] = useState(savedPrediction?.homeScore ?? 0);
+  const [awayScore, setAwayScore] = useState(savedPrediction?.awayScore ?? 0);
 
   useEffect(() => {
     if (savedPrediction) {
@@ -72,6 +71,28 @@ export default function MatchDetailScreen() {
     Alert.alert(
       'Predicción guardada',
       `${currentMatch.homeTeam} ${homeScore} - ${awayScore} ${currentMatch.awayTeam}`
+    );
+  }
+
+  function deletePrediction() {
+    Alert.alert(
+      'Eliminar predicción',
+      '¿Seguro que quieres eliminar esta predicción?',
+      [
+        {
+          text: 'Cancelar',
+          style: 'cancel',
+        },
+        {
+          text: 'Eliminar',
+          style: 'destructive',
+          onPress: () => {
+            deletePredictionInStore(currentMatch.id);
+            setHomeScore(0);
+            setAwayScore(0);
+          },
+        },
+      ]
     );
   }
 
@@ -124,6 +145,7 @@ export default function MatchDetailScreen() {
         onDecreaseAwayScore={decreaseAwayScore}
         onIncreaseAwayScore={increaseAwayScore}
         onSavePrediction={savePrediction}
+        onDeletePrediction={deletePrediction}
       />
     </View>
   );

@@ -16,6 +16,7 @@ type PredictionCardProps = {
   onDecreaseAwayScore: () => void;
   onIncreaseAwayScore: () => void;
   onSavePrediction: () => void;
+  onDeletePrediction: () => void;
 };
 
 export function PredictionCard({
@@ -29,6 +30,7 @@ export function PredictionCard({
   onDecreaseAwayScore,
   onIncreaseAwayScore,
   onSavePrediction,
+  onDeletePrediction,
 }: PredictionCardProps) {
   return (
     <View style={styles.predictionCard}>
@@ -80,14 +82,20 @@ export function PredictionCard({
       </Pressable>
 
       {savedPrediction ? (
-        <View style={styles.savedPredictionBox}>
-          <Text style={styles.savedPredictionTitle}>Predicción guardada</Text>
+        <>
+          <View style={styles.savedPredictionBox}>
+            <Text style={styles.savedPredictionTitle}>Predicción guardada</Text>
 
-          <Text style={styles.savedPredictionScore}>
-            {homeTeam} {savedPrediction.homeScore} - {savedPrediction.awayScore}{' '}
-            {awayTeam}
-          </Text>
-        </View>
+            <Text style={styles.savedPredictionScore}>
+              {homeTeam} {savedPrediction.homeScore} -{' '}
+              {savedPrediction.awayScore} {awayTeam}
+            </Text>
+          </View>
+
+          <Pressable style={styles.deleteButton} onPress={onDeletePrediction}>
+            <Text style={styles.deleteButtonText}>Eliminar predicción</Text>
+          </Pressable>
+        </>
       ) : null}
     </View>
   );
@@ -190,5 +198,18 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '800',
     color: '#111827',
+  },
+  deleteButton: {
+    marginTop: 12,
+    height: 46,
+    borderRadius: 14,
+    backgroundColor: '#FEF2F2',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  deleteButtonText: {
+    fontSize: 15,
+    fontWeight: '800',
+    color: '#991B1B',
   },
 });
