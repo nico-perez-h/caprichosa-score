@@ -1,4 +1,13 @@
-import { createContext, ReactNode, useContext, useState } from 'react';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import {
+  createContext,
+  useContext,
+  useEffect,
+  useState,
+  type ReactNode,
+} from 'react';
+
+const PREDICTIONS_STORAGE_KEY = 'caprichosa-score-predictions';
 
 export type Prediction = {
   matchId: string;
@@ -25,15 +34,44 @@ type PredictionsProviderProps = {
 export function PredictionsProvider({ children }: PredictionsProviderProps) {
   const [predictions, setPredictions] = useState<PredictionsByMatch>({});
 
+  useEffect(() => {
+    async function loadPredictions() {
+      try {
+        const storedPredictions = await AsyncStorage.getItem(
+          PREDICTIONS_STORAGE_KEY
+        );
+
+        if (storedPredictions) {
+          const parsedPredictions = JSON.parse(
+            storedPredictions
+          ) as PredictionsByMatch;
+
+          setPredictions(parsedPredictions);
+        }
+      } catch {
+        setPredictions({});
+      }
+    }
+
+    loadPredictions();
+  }, []);
+
   function getPrediction(matchId: string) {
     return predictions[matchId] ?? null;
   }
 
   function savePrediction(prediction: Prediction) {
-    setPredictions((currentPredictions) => ({
-      ...currentPredictions,
+    const updatedPredictions = {
+      ...predictions,
       [prediction.matchId]: prediction,
-    }));
+    };
+
+    setPredictions(updatedPredictions);
+
+    AsyncStorage.setItem(
+      PREDICTIONS_STORAGE_KEY,
+      JSON.stringify(updatedPredictions)
+    ).catch(() => {});
   }
 
   return (
