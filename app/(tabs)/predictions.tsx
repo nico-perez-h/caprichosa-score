@@ -2,6 +2,7 @@ import { router } from 'expo-router';
 import { FlatList, StyleSheet, Text, View } from 'react-native';
 
 import { MatchCard } from '@/components/MatchCard';
+import { ScoringRulesCard } from '@/components/ScoringRulesCard';
 import { ScreenHeader } from '@/components/ScreenHeader';
 import { matches } from '@/data/matches';
 import { usePredictions } from '../../contexts/PredictionsContext';
@@ -32,6 +33,7 @@ export default function PredictionsScreen() {
         data={predictedMatches}
         keyExtractor={(item) => item.id}
         contentContainerStyle={styles.list}
+        ListHeaderComponent={<ScoringRulesCard />}
         renderItem={({ item }) => (
           <MatchCard
             match={item}

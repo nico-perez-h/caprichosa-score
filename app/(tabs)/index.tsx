@@ -1,6 +1,7 @@
 import { router } from 'expo-router';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
+import { ScoringRulesCard } from '@/components/ScoringRulesCard';
 import { ScreenHeader } from '@/components/ScreenHeader';
 import { matches } from '@/data/matches';
 import { tournaments } from '@/data/tournaments';
@@ -69,6 +70,8 @@ export default function HomeScreen() {
         </Pressable>
       </View>
 
+      <ScoringRulesCard />
+
       <View style={styles.actionsRow}>
         <Pressable
           style={styles.secondaryButton}
@@ -131,7 +134,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#111827',
     borderRadius: 22,
     padding: 20,
-    marginBottom: 14,
+    marginBottom: 16,
   },
   nextTitle: {
     fontSize: 20,
