@@ -4,6 +4,7 @@ import { FlatList, StyleSheet, Text, View } from 'react-native';
 
 import { MatchCard } from '@/components/MatchCard';
 import { MatchFilters } from '@/components/MatchFilters';
+import { MatchSearchInput } from '@/components/MatchSearchInput';
 import { ScreenHeader } from '@/components/ScreenHeader';
 import { matches } from '@/data/matches';
 import { usePredictions } from '../../contexts/PredictionsContext';
@@ -16,10 +17,12 @@ export default function MatchesScreen() {
   const { getPrediction } = usePredictions();
 
   const [selectedFilter, setSelectedFilter] = useState<MatchFilter>('all');
+  const [searchTerm, setSearchTerm] = useState('');
 
   const filteredMatches = filterMatches({
     matches,
     selectedFilter,
+    searchTerm,
     hasPrediction: (matchId) => Boolean(getPrediction(matchId)),
   });
 
@@ -27,8 +30,10 @@ export default function MatchesScreen() {
     <View style={styles.screen}>
       <ScreenHeader
         title="Partidos"
-        subtitle="Filtra los partidos y elige dónde quieres hacer tu predicción."
+        subtitle="Busca un equipo, filtra los partidos y elige dónde quieres hacer tu predicción."
       />
+
+      <MatchSearchInput value={searchTerm} onChangeText={setSearchTerm} />
 
       <MatchFilters
         selectedFilter={selectedFilter}
@@ -39,6 +44,7 @@ export default function MatchesScreen() {
         data={filteredMatches}
         keyExtractor={(item) => item.id}
         contentContainerStyle={styles.list}
+        keyboardShouldPersistTaps="handled"
         renderItem={({ item }) => (
           <MatchCard
             match={item}
@@ -48,9 +54,9 @@ export default function MatchesScreen() {
         )}
         ListEmptyComponent={
           <View style={styles.emptyCard}>
-            <Text style={styles.emptyTitle}>No hay partidos aquí</Text>
+            <Text style={styles.emptyTitle}>No encontramos partidos</Text>
             <Text style={styles.emptyText}>
-              Cambia el filtro para ver otros partidos disponibles.
+              Prueba con otro equipo o cambia el filtro seleccionado.
             </Text>
           </View>
         }

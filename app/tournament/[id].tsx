@@ -4,6 +4,7 @@ import { FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { MatchCard } from '@/components/MatchCard';
 import { MatchFilters } from '@/components/MatchFilters';
+import { MatchSearchInput } from '@/components/MatchSearchInput';
 import { ScreenHeader } from '@/components/ScreenHeader';
 import { StatusBadge } from '@/components/StatusBadge';
 import { matches } from '@/data/matches';
@@ -19,6 +20,7 @@ export default function TournamentDetailScreen() {
   const { getPrediction } = usePredictions();
 
   const [selectedFilter, setSelectedFilter] = useState<MatchFilter>('all');
+  const [searchTerm, setSearchTerm] = useState('');
 
   const tournament = tournaments.find((item) => item.id === id);
   const tournamentMatches = matches.filter((match) => match.tournamentId === id);
@@ -26,6 +28,7 @@ export default function TournamentDetailScreen() {
   const filteredTournamentMatches = filterMatches({
     matches: tournamentMatches,
     selectedFilter,
+    searchTerm,
     hasPrediction: (matchId) => Boolean(getPrediction(matchId)),
   });
 
@@ -61,11 +64,13 @@ export default function TournamentDetailScreen() {
         </View>
 
         <Text style={styles.summaryText}>
-          Filtra los partidos de este torneo y entra al que quieras predecir.
+          Busca equipos, filtra los partidos de este torneo y entra al que quieras predecir.
         </Text>
       </View>
 
       <Text style={styles.sectionTitle}>Partidos</Text>
+
+      <MatchSearchInput value={searchTerm} onChangeText={setSearchTerm} />
 
       <MatchFilters
         selectedFilter={selectedFilter}
@@ -76,6 +81,7 @@ export default function TournamentDetailScreen() {
         data={filteredTournamentMatches}
         keyExtractor={(item) => item.id}
         contentContainerStyle={styles.list}
+        keyboardShouldPersistTaps="handled"
         renderItem={({ item }) => (
           <MatchCard
             match={item}
@@ -85,9 +91,9 @@ export default function TournamentDetailScreen() {
         )}
         ListEmptyComponent={
           <View style={styles.emptyCard}>
-            <Text style={styles.emptyTitle}>No hay partidos aquí</Text>
+            <Text style={styles.emptyTitle}>No encontramos partidos</Text>
             <Text style={styles.emptyText}>
-              Cambia el filtro para ver otros partidos de este torneo.
+              Prueba con otro equipo o cambia el filtro seleccionado.
             </Text>
           </View>
         }
