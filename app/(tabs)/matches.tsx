@@ -3,33 +3,24 @@ import { useState } from 'react';
 import { FlatList, StyleSheet, Text, View } from 'react-native';
 
 import { MatchCard } from '@/components/MatchCard';
-import {
-  MatchFilters,
-  type MatchFilter,
-} from '@/components/MatchFilters';
+import { MatchFilters } from '@/components/MatchFilters';
 import { ScreenHeader } from '@/components/ScreenHeader';
 import { matches } from '@/data/matches';
 import { usePredictions } from '../../contexts/PredictionsContext';
+import {
+  filterMatches,
+  type MatchFilter,
+} from '../../utils/matchFilters';
 
 export default function MatchesScreen() {
   const { getPrediction } = usePredictions();
 
   const [selectedFilter, setSelectedFilter] = useState<MatchFilter>('all');
 
-  const filteredMatches = matches.filter((match) => {
-    if (selectedFilter === 'upcoming') {
-      return match.status === 'Por jugar';
-    }
-
-    if (selectedFilter === 'finished') {
-      return match.status === 'Finalizado';
-    }
-
-    if (selectedFilter === 'predicted') {
-      return Boolean(getPrediction(match.id));
-    }
-
-    return true;
+  const filteredMatches = filterMatches({
+    matches,
+    selectedFilter,
+    hasPrediction: (matchId) => Boolean(getPrediction(matchId)),
   });
 
   return (

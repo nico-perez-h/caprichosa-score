@@ -1,6 +1,6 @@
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
-export type MatchFilter = 'all' | 'upcoming' | 'finished' | 'predicted';
+import type { MatchFilter } from '../utils/matchFilters';
 
 type FilterOption = {
   label: string;

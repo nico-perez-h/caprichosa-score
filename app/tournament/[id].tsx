@@ -3,15 +3,16 @@ import { useState } from 'react';
 import { FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { MatchCard } from '@/components/MatchCard';
-import {
-  MatchFilters,
-  type MatchFilter,
-} from '@/components/MatchFilters';
+import { MatchFilters } from '@/components/MatchFilters';
 import { ScreenHeader } from '@/components/ScreenHeader';
 import { StatusBadge } from '@/components/StatusBadge';
 import { matches } from '@/data/matches';
 import { tournaments } from '@/data/tournaments';
 import { usePredictions } from '../../contexts/PredictionsContext';
+import {
+  filterMatches,
+  type MatchFilter,
+} from '../../utils/matchFilters';
 
 export default function TournamentDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -22,20 +23,10 @@ export default function TournamentDetailScreen() {
   const tournament = tournaments.find((item) => item.id === id);
   const tournamentMatches = matches.filter((match) => match.tournamentId === id);
 
-  const filteredTournamentMatches = tournamentMatches.filter((match) => {
-    if (selectedFilter === 'upcoming') {
-      return match.status === 'Por jugar';
-    }
-
-    if (selectedFilter === 'finished') {
-      return match.status === 'Finalizado';
-    }
-
-    if (selectedFilter === 'predicted') {
-      return Boolean(getPrediction(match.id));
-    }
-
-    return true;
+  const filteredTournamentMatches = filterMatches({
+    matches: tournamentMatches,
+    selectedFilter,
+    hasPrediction: (matchId) => Boolean(getPrediction(matchId)),
   });
 
   if (!tournament) {
