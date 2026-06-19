@@ -44,7 +44,7 @@ export default function MatchDetailScreen() {
   }
 
   const currentMatch = match;
-  const isPredictionLocked = currentMatch.status === "Finalizado";
+  const isPredictionLocked = currentMatch.status !== "Por jugar";
 
   function decreaseHomeScore() {
     setHomeScore((currentScore) => Math.max(currentScore - 1, 0));

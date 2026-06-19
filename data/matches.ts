@@ -27,7 +27,7 @@ export const matches: Match[] = [
     group: 'Grupo B',
     stadium: 'MetLife Stadium',
     city: 'New Jersey',
-    status: 'Por jugar',
+    status: 'En vivo',
   },
   {
     id: '3',
