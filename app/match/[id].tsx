@@ -6,6 +6,7 @@ import { PredictionCard } from "@/components/PredictionCard";
 import { ScreenHeader } from "@/components/ScreenHeader";
 import { StatusBadge } from "@/components/StatusBadge";
 import { matches } from "@/data/matches";
+import { PredictionStatusNotice } from '@/components/PredictionStatusNotice';
 import { usePredictions } from "../../contexts/PredictionsContext";
 
 export default function MatchDetailScreen() {
@@ -142,6 +143,8 @@ export default function MatchDetailScreen() {
           </View>
         </View>
       </View>
+
+      <PredictionStatusNotice status={currentMatch.status} />
 
       <PredictionCard
         homeTeam={currentMatch.homeTeam}
