@@ -1,39 +1,17 @@
 import { router, useLocalSearchParams } from 'expo-router';
-import { FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
 import { useState } from 'react';
+import { FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { MatchCard } from '@/components/MatchCard';
+import {
+  MatchFilters,
+  type MatchFilter,
+} from '@/components/MatchFilters';
 import { ScreenHeader } from '@/components/ScreenHeader';
 import { StatusBadge } from '@/components/StatusBadge';
 import { matches } from '@/data/matches';
 import { tournaments } from '@/data/tournaments';
 import { usePredictions } from '../../contexts/PredictionsContext';
-
-type MatchFilter = 'all' | 'upcoming' | 'finished' | 'predicted';
-
-type FilterOption = {
-  label: string;
-  value: MatchFilter;
-};
-
-const filterOptions: FilterOption[] = [
-  {
-    label: 'Todos',
-    value: 'all',
-  },
-  {
-    label: 'Por jugar',
-    value: 'upcoming',
-  },
-  {
-    label: 'Finalizados',
-    value: 'finished',
-  },
-  {
-    label: 'Con predicción',
-    value: 'predicted',
-  },
-];
 
 export default function TournamentDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -98,31 +76,10 @@ export default function TournamentDetailScreen() {
 
       <Text style={styles.sectionTitle}>Partidos</Text>
 
-      <View style={styles.filtersRow}>
-        {filterOptions.map((option) => {
-          const isSelected = selectedFilter === option.value;
-
-          return (
-            <Pressable
-              key={option.value}
-              style={[
-                styles.filterButton,
-                isSelected && styles.filterButtonSelected,
-              ]}
-              onPress={() => setSelectedFilter(option.value)}
-            >
-              <Text
-                style={[
-                  styles.filterButtonText,
-                  isSelected && styles.filterButtonTextSelected,
-                ]}
-              >
-                {option.label}
-              </Text>
-            </Pressable>
-          );
-        })}
-      </View>
+      <MatchFilters
+        selectedFilter={selectedFilter}
+        onChangeFilter={setSelectedFilter}
+      />
 
       <FlatList
         data={filteredTournamentMatches}
@@ -210,32 +167,6 @@ const styles = StyleSheet.create({
     fontWeight: '800',
     color: '#111827',
     marginBottom: 12,
-  },
-  filtersRow: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 8,
-    marginBottom: 16,
-  },
-  filterButton: {
-    borderRadius: 999,
-    backgroundColor: '#FFFFFF',
-    borderWidth: 1,
-    borderColor: '#E5E7EB',
-    paddingHorizontal: 14,
-    paddingVertical: 9,
-  },
-  filterButtonSelected: {
-    backgroundColor: '#111827',
-    borderColor: '#111827',
-  },
-  filterButtonText: {
-    fontSize: 13,
-    fontWeight: '800',
-    color: '#6B7280',
-  },
-  filterButtonTextSelected: {
-    color: '#FFFFFF',
   },
   list: {
     paddingBottom: 24,
