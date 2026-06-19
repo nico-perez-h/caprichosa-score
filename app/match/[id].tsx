@@ -1,12 +1,12 @@
-import { router, useLocalSearchParams } from 'expo-router';
-import { useEffect, useState } from 'react';
-import { Alert, Pressable, StyleSheet, Text, View } from 'react-native';
+import { router, useLocalSearchParams } from "expo-router";
+import { useEffect, useState } from "react";
+import { Alert, Pressable, StyleSheet, Text, View } from "react-native";
 
-import { PredictionCard } from '@/components/PredictionCard';
-import { ScreenHeader } from '@/components/ScreenHeader';
-import { StatusBadge } from '@/components/StatusBadge';
-import { matches } from '@/data/matches';
-import { usePredictions } from '../../contexts/PredictionsContext';
+import { PredictionCard } from "@/components/PredictionCard";
+import { ScreenHeader } from "@/components/ScreenHeader";
+import { StatusBadge } from "@/components/StatusBadge";
+import { matches } from "@/data/matches";
+import { usePredictions } from "../../contexts/PredictionsContext";
 
 export default function MatchDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -44,6 +44,7 @@ export default function MatchDetailScreen() {
   }
 
   const currentMatch = match;
+  const isPredictionLocked = currentMatch.status === "Finalizado";
 
   function decreaseHomeScore() {
     setHomeScore((currentScore) => Math.max(currentScore - 1, 0));
@@ -62,6 +63,14 @@ export default function MatchDetailScreen() {
   }
 
   function savePrediction() {
+    if (isPredictionLocked) {
+      Alert.alert(
+        "Predicciones cerradas",
+        "Ya no puedes guardar predicciones para un partido finalizado.",
+      );
+      return;
+    }
+
     savePredictionInStore({
       matchId: currentMatch.id,
       homeScore,
@@ -69,30 +78,30 @@ export default function MatchDetailScreen() {
     });
 
     Alert.alert(
-      'Predicción guardada',
-      `${currentMatch.homeTeam} ${homeScore} - ${awayScore} ${currentMatch.awayTeam}`
+      "Predicción guardada",
+      `${currentMatch.homeTeam} ${homeScore} - ${awayScore} ${currentMatch.awayTeam}`,
     );
   }
 
   function deletePrediction() {
     Alert.alert(
-      'Eliminar predicción',
-      '¿Seguro que quieres eliminar esta predicción?',
+      "Eliminar predicción",
+      "¿Seguro que quieres eliminar esta predicción?",
       [
         {
-          text: 'Cancelar',
-          style: 'cancel',
+          text: "Cancelar",
+          style: "cancel",
         },
         {
-          text: 'Eliminar',
-          style: 'destructive',
+          text: "Eliminar",
+          style: "destructive",
           onPress: () => {
             deletePredictionInStore(currentMatch.id);
             setHomeScore(0);
             setAwayScore(0);
           },
         },
-      ]
+      ],
     );
   }
 
@@ -140,6 +149,7 @@ export default function MatchDetailScreen() {
         homeScore={homeScore}
         awayScore={awayScore}
         savedPrediction={savedPrediction}
+        isPredictionLocked={isPredictionLocked}
         onDecreaseHomeScore={decreaseHomeScore}
         onIncreaseHomeScore={increaseHomeScore}
         onDecreaseAwayScore={decreaseAwayScore}
@@ -154,31 +164,31 @@ export default function MatchDetailScreen() {
 const styles = StyleSheet.create({
   screen: {
     flex: 1,
-    backgroundColor: '#F9FAFB',
+    backgroundColor: "#F9FAFB",
     paddingHorizontal: 24,
     paddingTop: 64,
   },
   backButton: {
-    alignSelf: 'flex-start',
+    alignSelf: "flex-start",
     marginBottom: 20,
   },
   backButtonText: {
     fontSize: 16,
-    fontWeight: '700',
-    color: '#111827',
+    fontWeight: "700",
+    color: "#111827",
   },
   matchCard: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: "#FFFFFF",
     borderRadius: 20,
     padding: 18,
     borderWidth: 1,
-    borderColor: '#E5E7EB',
+    borderColor: "#E5E7EB",
     marginBottom: 18,
   },
   matchHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
     marginBottom: 20,
     gap: 12,
   },
@@ -187,43 +197,43 @@ const styles = StyleSheet.create({
   },
   matchDate: {
     fontSize: 14,
-    fontWeight: '800',
-    color: '#111827',
+    fontWeight: "800",
+    color: "#111827",
   },
   matchPlace: {
     marginTop: 4,
     fontSize: 13,
-    color: '#6B7280',
+    color: "#6B7280",
   },
   teamsRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
   },
   teamBox: {
     flex: 1,
     minHeight: 80,
     borderRadius: 16,
-    backgroundColor: '#F9FAFB',
-    alignItems: 'center',
-    justifyContent: 'center',
+    backgroundColor: "#F9FAFB",
+    alignItems: "center",
+    justifyContent: "center",
     padding: 12,
   },
   teamName: {
     fontSize: 17,
-    fontWeight: '800',
-    color: '#111827',
-    textAlign: 'center',
+    fontWeight: "800",
+    color: "#111827",
+    textAlign: "center",
   },
   vs: {
     fontSize: 13,
-    fontWeight: '800',
-    color: '#9CA3AF',
+    fontWeight: "800",
+    color: "#9CA3AF",
     paddingHorizontal: 12,
   },
   notFoundTitle: {
     fontSize: 24,
-    fontWeight: '800',
-    color: '#111827',
+    fontWeight: "800",
+    color: "#111827",
   },
 });

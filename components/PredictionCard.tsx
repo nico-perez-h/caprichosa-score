@@ -11,6 +11,7 @@ type PredictionCardProps = {
   homeScore: number;
   awayScore: number;
   savedPrediction: SavedPrediction | null;
+  isPredictionLocked?: boolean;
   onDecreaseHomeScore: () => void;
   onIncreaseHomeScore: () => void;
   onDecreaseAwayScore: () => void;
@@ -25,6 +26,7 @@ export function PredictionCard({
   homeScore,
   awayScore,
   savedPrediction,
+  isPredictionLocked = false,
   onDecreaseHomeScore,
   onIncreaseHomeScore,
   onDecreaseAwayScore,
@@ -35,23 +37,58 @@ export function PredictionCard({
   return (
     <View style={styles.predictionCard}>
       <Text style={styles.predictionTitle}>Tu predicción</Text>
-      <Text style={styles.predictionText}>
-        Elige cuántos goles crees que hará cada equipo.
-      </Text>
+
+      {isPredictionLocked ? (
+        <Text style={styles.lockedText}>
+          Las predicciones para este partido ya están cerradas.
+        </Text>
+      ) : (
+        <Text style={styles.predictionText}>
+          Elige cuántos goles crees que hará cada equipo.
+        </Text>
+      )}
 
       <View style={styles.scoreSelector}>
         <View style={styles.scoreColumn}>
           <Text style={styles.scoreTeam}>{homeTeam}</Text>
 
           <View style={styles.scoreControls}>
-            <Pressable style={styles.scoreButton} onPress={onDecreaseHomeScore}>
-              <Text style={styles.scoreButtonText}>−</Text>
+            <Pressable
+              disabled={isPredictionLocked}
+              style={[
+                styles.scoreButton,
+                isPredictionLocked && styles.disabledButton,
+              ]}
+              onPress={onDecreaseHomeScore}
+            >
+              <Text
+                style={[
+                  styles.scoreButtonText,
+                  isPredictionLocked && styles.disabledButtonText,
+                ]}
+              >
+                −
+              </Text>
             </Pressable>
 
             <Text style={styles.scoreNumber}>{homeScore}</Text>
 
-            <Pressable style={styles.scoreButton} onPress={onIncreaseHomeScore}>
-              <Text style={styles.scoreButtonText}>+</Text>
+            <Pressable
+              disabled={isPredictionLocked}
+              style={[
+                styles.scoreButton,
+                isPredictionLocked && styles.disabledButton,
+              ]}
+              onPress={onIncreaseHomeScore}
+            >
+              <Text
+                style={[
+                  styles.scoreButtonText,
+                  isPredictionLocked && styles.disabledButtonText,
+                ]}
+              >
+                +
+              </Text>
             </Pressable>
           </View>
         </View>
@@ -62,22 +99,66 @@ export function PredictionCard({
           <Text style={styles.scoreTeam}>{awayTeam}</Text>
 
           <View style={styles.scoreControls}>
-            <Pressable style={styles.scoreButton} onPress={onDecreaseAwayScore}>
-              <Text style={styles.scoreButtonText}>−</Text>
+            <Pressable
+              disabled={isPredictionLocked}
+              style={[
+                styles.scoreButton,
+                isPredictionLocked && styles.disabledButton,
+              ]}
+              onPress={onDecreaseAwayScore}
+            >
+              <Text
+                style={[
+                  styles.scoreButtonText,
+                  isPredictionLocked && styles.disabledButtonText,
+                ]}
+              >
+                −
+              </Text>
             </Pressable>
 
             <Text style={styles.scoreNumber}>{awayScore}</Text>
 
-            <Pressable style={styles.scoreButton} onPress={onIncreaseAwayScore}>
-              <Text style={styles.scoreButtonText}>+</Text>
+            <Pressable
+              disabled={isPredictionLocked}
+              style={[
+                styles.scoreButton,
+                isPredictionLocked && styles.disabledButton,
+              ]}
+              onPress={onIncreaseAwayScore}
+            >
+              <Text
+                style={[
+                  styles.scoreButtonText,
+                  isPredictionLocked && styles.disabledButtonText,
+                ]}
+              >
+                +
+              </Text>
             </Pressable>
           </View>
         </View>
       </View>
 
-      <Pressable style={styles.primaryButton} onPress={onSavePrediction}>
-        <Text style={styles.primaryButtonText}>
-          {savedPrediction ? 'Actualizar predicción' : 'Guardar predicción'}
+      <Pressable
+        disabled={isPredictionLocked}
+        style={[
+          styles.primaryButton,
+          isPredictionLocked && styles.primaryButtonDisabled,
+        ]}
+        onPress={onSavePrediction}
+      >
+        <Text
+          style={[
+            styles.primaryButtonText,
+            isPredictionLocked && styles.primaryButtonTextDisabled,
+          ]}
+        >
+          {isPredictionLocked
+            ? 'Predicciones cerradas'
+            : savedPrediction
+              ? 'Actualizar predicción'
+              : 'Guardar predicción'}
         </Text>
       </Pressable>
 
@@ -92,9 +173,11 @@ export function PredictionCard({
             </Text>
           </View>
 
-          <Pressable style={styles.deleteButton} onPress={onDeletePrediction}>
-            <Text style={styles.deleteButtonText}>Eliminar predicción</Text>
-          </Pressable>
+          {!isPredictionLocked ? (
+            <Pressable style={styles.deleteButton} onPress={onDeletePrediction}>
+              <Text style={styles.deleteButtonText}>Eliminar predicción</Text>
+            </Pressable>
+          ) : null}
         </>
       ) : null}
     </View>
@@ -119,6 +202,13 @@ const styles = StyleSheet.create({
     fontSize: 14,
     lineHeight: 20,
     color: '#6B7280',
+  },
+  lockedText: {
+    marginTop: 8,
+    fontSize: 14,
+    lineHeight: 20,
+    fontWeight: '700',
+    color: '#991B1B',
   },
   scoreSelector: {
     marginTop: 22,
@@ -151,10 +241,16 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
+  disabledButton: {
+    backgroundColor: '#F9FAFB',
+  },
   scoreButtonText: {
     fontSize: 24,
     fontWeight: '800',
     color: '#111827',
+  },
+  disabledButtonText: {
+    color: '#D1D5DB',
   },
   scoreNumber: {
     minWidth: 34,
@@ -177,10 +273,16 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
+  primaryButtonDisabled: {
+    backgroundColor: '#E5E7EB',
+  },
   primaryButtonText: {
     color: '#FFFFFF',
     fontSize: 16,
     fontWeight: '800',
+  },
+  primaryButtonTextDisabled: {
+    color: '#9CA3AF',
   },
   savedPredictionBox: {
     marginTop: 16,
