@@ -1,6 +1,11 @@
 import type { Match } from '../types/match';
 
-export type MatchFilter = 'all' | 'upcoming' | 'finished' | 'predicted';
+export type MatchFilter =
+  | 'all'
+  | 'upcoming'
+  | 'live'
+  | 'finished'
+  | 'predicted';
 
 type FilterMatchesParams = {
   matches: Match[];
@@ -49,6 +54,10 @@ export function filterMatches({
 
     if (selectedFilter === 'upcoming') {
       return match.status === 'Por jugar';
+    }
+
+    if (selectedFilter === 'live') {
+      return match.status === 'En vivo';
     }
 
     if (selectedFilter === 'finished') {

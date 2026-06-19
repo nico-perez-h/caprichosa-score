@@ -17,6 +17,10 @@ const filterOptions: FilterOption[] = [
     value: 'upcoming',
   },
   {
+    label: 'En vivo',
+    value: 'live',
+  },
+  {
     label: 'Finalizados',
     value: 'finished',
   },
