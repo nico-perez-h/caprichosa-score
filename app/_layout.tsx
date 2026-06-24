@@ -13,6 +13,7 @@ export default function RootLayout() {
           <Stack.Screen name="tournament/[id]" />
           <Stack.Screen name="match/[id]" />
           <Stack.Screen name="profile" />
+          <Stack.Screen name="group" />
         </Stack>
 
         <StatusBar style="light" />
