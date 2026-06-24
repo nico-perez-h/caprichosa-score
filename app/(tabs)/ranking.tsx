@@ -3,15 +3,56 @@ import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import { ScreenHeader } from '@/components/ScreenHeader';
 import { matches } from '@/data/matches';
+import {
+  mockRankingPlayers,
+  type RankingPlayer,
+} from '@/data/mockRankingPlayers';
 import { usePredictions } from '../../contexts/PredictionsContext';
 import { useUserProfile } from '../../contexts/UserProfileContext';
 import { calculatePredictionStats } from '../../utils/predictionStats';
+
+type RankedPlayer = RankingPlayer & {
+  position: number;
+};
+
+function getPositionLabel(position: number) {
+  return `#${position}`;
+}
 
 export default function RankingScreen() {
   const { predictions } = usePredictions();
   const { playerName } = useUserProfile();
 
   const stats = calculatePredictionStats(matches, predictions);
+
+  const currentUserPlayer: RankingPlayer = {
+    id: 'current-user',
+    name: playerName,
+    points: stats.totalPoints,
+    predictions: stats.totalPredictions,
+    accuracy: stats.accuracy,
+    isCurrentUser: true,
+  };
+
+  const rankingPlayers: RankedPlayer[] = [
+    currentUserPlayer,
+    ...mockRankingPlayers,
+  ]
+    .sort((firstPlayer, secondPlayer) => {
+      if (secondPlayer.points !== firstPlayer.points) {
+        return secondPlayer.points - firstPlayer.points;
+      }
+
+      return secondPlayer.accuracy - firstPlayer.accuracy;
+    })
+    .map((player, index) => ({
+      ...player,
+      position: index + 1,
+    }));
+
+  const currentUserRank = rankingPlayers.find(
+    (player) => player.id === 'current-user'
+  );
 
   return (
     <ScrollView
@@ -21,18 +62,20 @@ export default function RankingScreen() {
     >
       <ScreenHeader
         title="Ranking"
-        subtitle="Mira tu posición, puntos y estadísticas de tus predicciones."
+        subtitle="Compara tus puntos con otros jugadores de prueba."
       />
 
       <View style={styles.userCard}>
         <View style={styles.positionBox}>
-          <Text style={styles.positionText}>#1</Text>
+          <Text style={styles.positionText}>
+            {getPositionLabel(currentUserRank?.position ?? 1)}
+          </Text>
         </View>
 
         <View style={styles.userInfo}>
           <Text style={styles.userName}>{playerName}</Text>
           <Text style={styles.userDescription}>
-            Ranking local de prueba. Luego aquí aparecerán tus amigos.
+            Tu posición actual en el ranking de prueba.
           </Text>
         </View>
 
@@ -74,8 +117,60 @@ export default function RankingScreen() {
         </View>
       </View>
 
+      <View style={styles.rankingCard}>
+        <Text style={styles.rankingTitle}>Tabla de posiciones</Text>
+
+        {rankingPlayers.map((player) => (
+          <View
+            key={player.id}
+            style={[
+              styles.rankingRow,
+              player.isCurrentUser && styles.currentUserRankingRow,
+            ]}
+          >
+            <Text
+              style={[
+                styles.rankingPosition,
+                player.isCurrentUser && styles.currentUserText,
+              ]}
+            >
+              {getPositionLabel(player.position)}
+            </Text>
+
+            <View style={styles.rankingPlayerInfo}>
+              <Text
+                style={[
+                  styles.rankingName,
+                  player.isCurrentUser && styles.currentUserText,
+                ]}
+              >
+                {player.name}
+              </Text>
+
+              <Text
+                style={[
+                  styles.rankingMeta,
+                  player.isCurrentUser && styles.currentUserMetaText,
+                ]}
+              >
+                {player.predictions} predicciones · {player.accuracy}% efectividad
+              </Text>
+            </View>
+
+            <Text
+              style={[
+                styles.rankingPoints,
+                player.isCurrentUser && styles.currentUserText,
+              ]}
+            >
+              {player.points} pts
+            </Text>
+          </View>
+        ))}
+      </View>
+
       <View style={styles.detailCard}>
-        <Text style={styles.detailTitle}>Detalle de aciertos</Text>
+        <Text style={styles.detailTitle}>Detalle de tus aciertos</Text>
 
         <View style={styles.detailRow}>
           <Text style={styles.detailLabel}>Resultados exactos</Text>
@@ -94,23 +189,11 @@ export default function RankingScreen() {
       </View>
 
       <View style={styles.previewCard}>
-        <Text style={styles.previewTitle}>Próximamente</Text>
+        <Text style={styles.previewTitle}>Ranking de prueba</Text>
         <Text style={styles.previewText}>
-          Cuando agreguemos usuarios, grupos y amigos, esta pantalla mostrará un
-          ranking real con varias personas compitiendo por puntos.
+          Estos jugadores todavía son simulados. Cuando conectemos usuarios,
+          grupos y Supabase, esta tabla se llenará con personas reales.
         </Text>
-
-        <View style={styles.fakeRankingRow}>
-          <Text style={styles.fakeRankingPosition}>#2</Text>
-          <Text style={styles.fakeRankingName}>Amigo invitado</Text>
-          <Text style={styles.fakeRankingPoints}>0 pts</Text>
-        </View>
-
-        <View style={styles.fakeRankingRow}>
-          <Text style={styles.fakeRankingPosition}>#3</Text>
-          <Text style={styles.fakeRankingName}>Otro jugador</Text>
-          <Text style={styles.fakeRankingPoints}>0 pts</Text>
-        </View>
       </View>
     </ScrollView>
   );
@@ -221,6 +304,65 @@ const styles = StyleSheet.create({
     fontWeight: '800',
     color: '#6B7280',
   },
+  rankingCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 20,
+    padding: 18,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+    marginBottom: 16,
+  },
+  rankingTitle: {
+    fontSize: 18,
+    fontWeight: '900',
+    color: '#111827',
+    marginBottom: 10,
+  },
+  rankingRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    paddingVertical: 12,
+    borderTopWidth: 1,
+    borderTopColor: '#F3F4F6',
+  },
+  currentUserRankingRow: {
+    backgroundColor: '#F9FAFB',
+    marginHorizontal: -8,
+    paddingHorizontal: 8,
+    borderRadius: 14,
+  },
+  rankingPosition: {
+    width: 38,
+    fontSize: 15,
+    fontWeight: '900',
+    color: '#9CA3AF',
+  },
+  rankingPlayerInfo: {
+    flex: 1,
+  },
+  rankingName: {
+    fontSize: 15,
+    fontWeight: '900',
+    color: '#111827',
+  },
+  rankingMeta: {
+    marginTop: 3,
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#6B7280',
+  },
+  rankingPoints: {
+    fontSize: 15,
+    fontWeight: '900',
+    color: '#111827',
+  },
+  currentUserText: {
+    color: '#111827',
+  },
+  currentUserMetaText: {
+    color: '#374151',
+  },
   detailCard: {
     backgroundColor: '#FFFFFF',
     borderRadius: 20,
@@ -257,47 +399,22 @@ const styles = StyleSheet.create({
     color: '#111827',
   },
   previewCard: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: '#EFF6FF',
     borderRadius: 20,
     padding: 18,
     borderWidth: 1,
-    borderColor: '#E5E7EB',
+    borderColor: '#BFDBFE',
   },
   previewTitle: {
-    fontSize: 18,
+    fontSize: 16,
     fontWeight: '900',
-    color: '#111827',
-    marginBottom: 8,
+    color: '#1D4ED8',
+    marginBottom: 6,
   },
   previewText: {
     fontSize: 14,
     lineHeight: 20,
     fontWeight: '600',
-    color: '#6B7280',
-    marginBottom: 14,
-  },
-  fakeRankingRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: 12,
-    borderTopWidth: 1,
-    borderTopColor: '#F3F4F6',
-  },
-  fakeRankingPosition: {
-    width: 42,
-    fontSize: 15,
-    fontWeight: '900',
-    color: '#9CA3AF',
-  },
-  fakeRankingName: {
-    flex: 1,
-    fontSize: 15,
-    fontWeight: '800',
-    color: '#6B7280',
-  },
-  fakeRankingPoints: {
-    fontSize: 15,
-    fontWeight: '900',
-    color: '#9CA3AF',
+    color: '#1E40AF',
   },
 });
