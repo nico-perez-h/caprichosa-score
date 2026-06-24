@@ -14,6 +14,7 @@ export default function RootLayout() {
           <Stack.Screen name="match/[id]" />
           <Stack.Screen name="profile" />
           <Stack.Screen name="group" />
+          <Stack.Screen name="join-group" />
         </Stack>
 
         <StatusBar style="light" />
