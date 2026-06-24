@@ -1,5 +1,6 @@
+import * as Clipboard from 'expo-clipboard';
 import { router } from 'expo-router';
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Alert, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { ScreenHeader } from '@/components/ScreenHeader';
@@ -8,6 +9,8 @@ import { mockRankingPlayers } from '@/data/mockRankingPlayers';
 import { usePredictions } from '../contexts/PredictionsContext';
 import { useUserProfile } from '../contexts/UserProfileContext';
 import { calculatePredictionStats } from '../utils/predictionStats';
+
+const GROUP_INVITE_CODE = 'CAPRI-2026';
 
 export default function GroupScreen() {
   const { predictions } = usePredictions();
@@ -42,6 +45,15 @@ export default function GroupScreen() {
     0
   );
 
+  async function handleCopyGroupCode() {
+    await Clipboard.setStringAsync(GROUP_INVITE_CODE);
+
+    Alert.alert(
+      'Código copiado',
+      `El código ${GROUP_INVITE_CODE} fue copiado correctamente.`
+    );
+  }
+
   return (
     <SafeAreaView style={styles.screen}>
       <ScrollView
@@ -64,8 +76,18 @@ export default function GroupScreen() {
 
           <View style={styles.codeBox}>
             <Text style={styles.codeLabel}>Código de invitación</Text>
-            <Text style={styles.codeText}>CAPRI-2026</Text>
+            <Text style={styles.codeText}>{GROUP_INVITE_CODE}</Text>
           </View>
+
+          <Pressable
+            style={({ pressed }) => [
+              styles.copyButton,
+              pressed && styles.buttonPressed,
+            ]}
+            onPress={handleCopyGroupCode}
+          >
+            <Text style={styles.copyButtonText}>Copiar código</Text>
+          </Pressable>
 
           <Text style={styles.groupDescription}>
             Este código es de prueba. Más adelante servirá para invitar amigos
@@ -215,6 +237,23 @@ const styles = StyleSheet.create({
     fontWeight: '900',
     color: '#111827',
     letterSpacing: 1,
+  },
+  copyButton: {
+    height: 48,
+    borderRadius: 14,
+    backgroundColor: '#FFFFFF',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: 12,
+  },
+  copyButtonText: {
+    fontSize: 15,
+    fontWeight: '900',
+    color: '#111827',
+  },
+  buttonPressed: {
+    opacity: 0.75,
+    transform: [{ scale: 0.99 }],
   },
   groupDescription: {
     marginTop: 14,
