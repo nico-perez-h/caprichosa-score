@@ -16,6 +16,7 @@ type UserProfile = {
 type UserProfileContextValue = {
   playerName: string;
   savePlayerName: (name: string) => void;
+  resetPlayerName: () => void;
 };
 
 const defaultProfile: UserProfile = {
@@ -70,11 +71,17 @@ export function UserProfileProvider({ children }: UserProfileProviderProps) {
     ).catch(() => {});
   }
 
+  function resetPlayerName() {
+    setPlayerName(defaultProfile.playerName);
+    AsyncStorage.removeItem(USER_PROFILE_STORAGE_KEY).catch(() => {});
+  }
+
   return (
     <UserProfileContext.Provider
       value={{
         playerName,
         savePlayerName,
+        resetPlayerName,
       }}
     >
       {children}
