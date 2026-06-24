@@ -1,4 +1,5 @@
-import { ScrollView, StyleSheet, Text, View } from 'react-native';
+import { router } from 'expo-router';
+import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import { ScreenHeader } from '@/components/ScreenHeader';
 import { matches } from '@/data/matches';
@@ -38,6 +39,16 @@ export default function RankingScreen() {
           <Text style={styles.pointsLabel}>pts</Text>
         </View>
       </View>
+
+      <Pressable
+        style={({ pressed }) => [
+          styles.profileButton,
+          pressed && styles.profileButtonPressed,
+        ]}
+        onPress={() => router.push('/profile' as never)}
+      >
+        <Text style={styles.profileButtonText}>Ver perfil</Text>
+      </Pressable>
 
       <View style={styles.statsGrid}>
         <View style={styles.statCard}>
@@ -117,7 +128,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#111827',
     borderRadius: 24,
     padding: 18,
-    marginBottom: 16,
+    marginBottom: 12,
     flexDirection: 'row',
     alignItems: 'center',
     gap: 14,
@@ -162,6 +173,25 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: '800',
     color: '#D1D5DB',
+  },
+  profileButton: {
+    height: 50,
+    borderRadius: 16,
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 16,
+  },
+  profileButtonPressed: {
+    opacity: 0.75,
+    transform: [{ scale: 0.99 }],
+  },
+  profileButtonText: {
+    fontSize: 16,
+    fontWeight: '900',
+    color: '#111827',
   },
   statsGrid: {
     flexDirection: 'row',

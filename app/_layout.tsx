@@ -10,6 +10,7 @@ export default function RootLayout() {
         <Stack.Screen name="(tabs)" />
         <Stack.Screen name="tournament/[id]" />
         <Stack.Screen name="match/[id]" />
+        <Stack.Screen name="profile" />
       </Stack>
 
       <StatusBar style="light" />
