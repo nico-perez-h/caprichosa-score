@@ -97,6 +97,7 @@ export default function GroupScreen() {
           >
             <Text style={styles.copyButtonText}>Copiar código</Text>
           </Pressable>
+
           <Pressable
             style={({ pressed }) => [
               styles.joinButton,
@@ -105,6 +106,16 @@ export default function GroupScreen() {
             onPress={() => router.push("/join-group" as never)}
           >
             <Text style={styles.joinButtonText}>Unirse con código</Text>
+          </Pressable>
+
+          <Pressable
+            style={({ pressed }) => [
+              styles.createGroupButton,
+              pressed && styles.buttonPressed,
+            ]}
+            onPress={() => router.push("/create-group" as never)}
+          >
+            <Text style={styles.createGroupButtonText}>Crear nuevo grupo</Text>
           </Pressable>
 
           <Text style={styles.groupDescription}>
@@ -285,6 +296,19 @@ const styles = StyleSheet.create({
     fontSize: 15,
     fontWeight: "900",
     color: "#FFFFFF",
+  },
+  createGroupButton: {
+    height: 48,
+    borderRadius: 14,
+    backgroundColor: "#FFFFFF",
+    alignItems: "center",
+    justifyContent: "center",
+    marginTop: 10,
+  },
+  createGroupButtonText: {
+    fontSize: 15,
+    fontWeight: "900",
+    color: "#111827",
   },
   groupDescription: {
     marginTop: 14,

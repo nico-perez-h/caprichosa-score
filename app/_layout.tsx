@@ -15,6 +15,7 @@ export default function RootLayout() {
           <Stack.Screen name="profile" />
           <Stack.Screen name="group" />
           <Stack.Screen name="join-group" />
+          <Stack.Screen name="create-group" />
         </Stack>
 
         <StatusBar style="light" />
