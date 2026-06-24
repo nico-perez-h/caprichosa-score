@@ -1,15 +1,52 @@
 import { router } from 'expo-router';
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { useState } from 'react';
+import {
+  Alert,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  View,
+} from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { ScreenHeader } from '@/components/ScreenHeader';
 import { matches } from '@/data/matches';
 import { usePredictions } from '../contexts/PredictionsContext';
+import { useUserProfile } from '../contexts/UserProfileContext';
 import { calculatePredictionStats } from '../utils/predictionStats';
+
+function getInitials(name: string) {
+  const words = name.trim().split(' ').filter(Boolean);
+
+  if (words.length === 0) {
+    return 'JL';
+  }
+
+  if (words.length === 1) {
+    return words[0].slice(0, 2).toUpperCase();
+  }
+
+  return `${words[0][0]}${words[1][0]}`.toUpperCase();
+}
 
 export default function ProfileScreen() {
   const { predictions } = usePredictions();
+  const { playerName, savePlayerName } = useUserProfile();
+
+  const [nameInput, setNameInput] = useState(playerName);
+
   const stats = calculatePredictionStats(matches, predictions);
+
+  function handleSaveName() {
+    savePlayerName(nameInput);
+
+    Alert.alert(
+      'Nombre guardado',
+      'Tu nombre de jugador se guardó correctamente.'
+    );
+  }
 
   return (
     <SafeAreaView style={styles.screen}>
@@ -24,18 +61,40 @@ export default function ProfileScreen() {
 
         <ScreenHeader
           title="Perfil"
-          subtitle="Aquí verás tu información, estadísticas y configuración de la cuenta."
+          subtitle="Edita tu nombre, revisa tus estadísticas y prepara tu cuenta para competir."
         />
 
         <View style={styles.profileCard}>
           <View style={styles.avatar}>
-            <Text style={styles.avatarText}>Tú</Text>
+            <Text style={styles.avatarText}>{getInitials(playerName)}</Text>
           </View>
 
-          <Text style={styles.userName}>Jugador local</Text>
+          <Text style={styles.userName}>{playerName}</Text>
           <Text style={styles.userDescription}>
-            Perfil de prueba para el desarrollo de Caprichosa Score.
+            Este será el nombre que aparecerá en tu ranking local.
           </Text>
+        </View>
+
+        <View style={styles.editCard}>
+          <Text style={styles.cardTitle}>Nombre de jugador</Text>
+
+          <TextInput
+            value={nameInput}
+            onChangeText={setNameInput}
+            placeholder="Escribe tu nombre"
+            placeholderTextColor="#9CA3AF"
+            style={styles.input}
+          />
+
+          <Pressable
+            style={({ pressed }) => [
+              styles.saveButton,
+              pressed && styles.buttonPressed,
+            ]}
+            onPress={handleSaveName}
+          >
+            <Text style={styles.saveButtonText}>Guardar nombre</Text>
+          </Pressable>
         </View>
 
         <View style={styles.statsCard}>
@@ -66,13 +125,6 @@ export default function ProfileScreen() {
           <Text style={styles.cardTitle}>Configuración futura</Text>
 
           <View style={styles.settingItem}>
-            <Text style={styles.settingTitle}>Nombre de usuario</Text>
-            <Text style={styles.settingDescription}>
-              Luego podrás cambiar cómo apareces en el ranking.
-            </Text>
-          </View>
-
-          <View style={styles.settingItem}>
             <Text style={styles.settingTitle}>Grupo de amigos</Text>
             <Text style={styles.settingDescription}>
               Aquí se mostrarán los grupos donde compites con otras personas.
@@ -82,7 +134,8 @@ export default function ProfileScreen() {
           <View style={styles.settingItem}>
             <Text style={styles.settingTitle}>Cuenta</Text>
             <Text style={styles.settingDescription}>
-              Más adelante agregaremos inicio de sesión, cerrar sesión y datos de cuenta.
+              Más adelante agregaremos inicio de sesión, cerrar sesión y datos
+              de cuenta.
             </Text>
           </View>
         </View>
@@ -91,8 +144,8 @@ export default function ProfileScreen() {
           <Text style={styles.infoTitle}>Versión de prueba</Text>
           <Text style={styles.infoText}>
             Esta pantalla todavía usa datos locales. Cuando conectemos Supabase,
-            aquí podremos mostrar el nombre real del usuario, su email, grupos,
-            amigos y estadísticas guardadas en la nube.
+            aquí podremos mostrar tu nombre real, email, grupos, amigos y
+            estadísticas guardadas en la nube.
           </Text>
         </View>
       </ScrollView>
@@ -147,6 +200,7 @@ const styles = StyleSheet.create({
     fontSize: 22,
     fontWeight: '900',
     color: '#FFFFFF',
+    textAlign: 'center',
   },
   userDescription: {
     marginTop: 6,
@@ -155,6 +209,42 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: '#D1D5DB',
     textAlign: 'center',
+  },
+  editCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 20,
+    padding: 18,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+    marginBottom: 16,
+  },
+  input: {
+    height: 52,
+    borderRadius: 14,
+    backgroundColor: '#F9FAFB',
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+    paddingHorizontal: 14,
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#111827',
+    marginBottom: 12,
+  },
+  saveButton: {
+    height: 50,
+    borderRadius: 14,
+    backgroundColor: '#111827',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  saveButtonText: {
+    fontSize: 15,
+    fontWeight: '900',
+    color: '#FFFFFF',
+  },
+  buttonPressed: {
+    opacity: 0.75,
+    transform: [{ scale: 0.99 }],
   },
   statsCard: {
     backgroundColor: '#FFFFFF',
