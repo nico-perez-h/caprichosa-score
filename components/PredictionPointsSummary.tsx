@@ -9,6 +9,38 @@ type PredictionPointsSummaryProps = {
   savedPrediction: Prediction | null;
 };
 
+function getPointsTitle(points: number | null) {
+  if (points === 3) {
+    return 'Resultado exacto';
+  }
+
+  if (points === 1) {
+    return 'Acertaste ganador o empate';
+  }
+
+  if (points === 0) {
+    return 'No acertaste el resultado';
+  }
+
+  return 'Puntos pendientes';
+}
+
+function getPointsDescription(points: number | null) {
+  if (points === 3) {
+    return 'Acertaste los goles exactos de ambos equipos.';
+  }
+
+  if (points === 1) {
+    return 'No acertaste el marcador exacto, pero sí acertaste si ganaba un equipo o si empataban.';
+  }
+
+  if (points === 0) {
+    return 'Tu predicción no coincide con el ganador, empate o resultado final del partido.';
+  }
+
+  return 'Cuando el partido termine, aquí se calcularán tus puntos.';
+}
+
 export function PredictionPointsSummary({
   match,
   savedPrediction,
@@ -17,11 +49,14 @@ export function PredictionPointsSummary({
     match.actualHomeScore !== undefined && match.actualAwayScore !== undefined;
 
   const points = calculatePredictionPoints(match, savedPrediction);
+  const pointsTitle = getPointsTitle(points);
+  const pointsDescription = getPointsDescription(points);
 
   if (!savedPrediction) {
     return (
       <View style={styles.card}>
         <Text style={styles.title}>Puntos de este partido</Text>
+        <Text style={styles.emptyTitle}>Sin predicción</Text>
         <Text style={styles.description}>
           Todavía no tienes una predicción guardada para este partido.
         </Text>
@@ -33,10 +68,16 @@ export function PredictionPointsSummary({
     return (
       <View style={styles.card}>
         <Text style={styles.title}>Puntos de este partido</Text>
-        <Text style={styles.pendingText}>Puntos pendientes</Text>
-        <Text style={styles.description}>
-          Cuando el partido termine, aquí se calcularán tus puntos.
-        </Text>
+        <Text style={styles.pendingText}>{pointsTitle}</Text>
+        <Text style={styles.description}>{pointsDescription}</Text>
+
+        <View style={styles.predictionBox}>
+          <Text style={styles.predictionLabel}>Tu predicción</Text>
+          <Text style={styles.predictionText}>
+            {match.homeTeam} {savedPrediction.homeScore} -{' '}
+            {savedPrediction.awayScore} {match.awayTeam}
+          </Text>
+        </View>
       </View>
     );
   }
@@ -52,15 +93,24 @@ export function PredictionPointsSummary({
         </Text>
       </View>
 
-      <Text style={styles.description}>
-        Resultado final: {match.homeTeam} {match.actualHomeScore} -{' '}
-        {match.actualAwayScore} {match.awayTeam}
-      </Text>
+      <Text style={styles.resultTitle}>{pointsTitle}</Text>
+      <Text style={styles.description}>{pointsDescription}</Text>
 
-      <Text style={styles.description}>
-        Tu predicción: {match.homeTeam} {savedPrediction.homeScore} -{' '}
-        {savedPrediction.awayScore} {match.awayTeam}
-      </Text>
+      <View style={styles.resultBox}>
+        <Text style={styles.resultLabel}>Resultado final</Text>
+        <Text style={styles.resultText}>
+          {match.homeTeam} {match.actualHomeScore} - {match.actualAwayScore}{' '}
+          {match.awayTeam}
+        </Text>
+      </View>
+
+      <View style={styles.predictionBox}>
+        <Text style={styles.predictionLabel}>Tu predicción</Text>
+        <Text style={styles.predictionText}>
+          {match.homeTeam} {savedPrediction.homeScore} -{' '}
+          {savedPrediction.awayScore} {match.awayTeam}
+        </Text>
+      </View>
     </View>
   );
 }
@@ -84,7 +134,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'flex-end',
     gap: 8,
-    marginBottom: 10,
+    marginBottom: 8,
   },
   pointsNumber: {
     fontSize: 38,
@@ -98,7 +148,19 @@ const styles = StyleSheet.create({
     color: '#047857',
     marginBottom: 5,
   },
+  resultTitle: {
+    fontSize: 17,
+    fontWeight: '900',
+    color: '#111827',
+    marginBottom: 6,
+  },
   pendingText: {
+    fontSize: 18,
+    fontWeight: '900',
+    color: '#6B7280',
+    marginBottom: 8,
+  },
+  emptyTitle: {
     fontSize: 18,
     fontWeight: '900',
     color: '#6B7280',
@@ -109,5 +171,39 @@ const styles = StyleSheet.create({
     lineHeight: 20,
     fontWeight: '600',
     color: '#6B7280',
+  },
+  resultBox: {
+    marginTop: 14,
+    borderRadius: 14,
+    backgroundColor: '#ECFDF5',
+    padding: 12,
+  },
+  resultLabel: {
+    fontSize: 12,
+    fontWeight: '900',
+    color: '#047857',
+    marginBottom: 4,
+  },
+  resultText: {
+    fontSize: 15,
+    fontWeight: '900',
+    color: '#065F46',
+  },
+  predictionBox: {
+    marginTop: 10,
+    borderRadius: 14,
+    backgroundColor: '#F3F4F6',
+    padding: 12,
+  },
+  predictionLabel: {
+    fontSize: 12,
+    fontWeight: '900',
+    color: '#6B7280',
+    marginBottom: 4,
+  },
+  predictionText: {
+    fontSize: 15,
+    fontWeight: '900',
+    color: '#111827',
   },
 });

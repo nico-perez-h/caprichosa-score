@@ -14,7 +14,7 @@ export const matches: Match[] = [
     city: 'Ciudad de México',
     status: 'Finalizado',
     actualHomeScore: 2,
-    actualAwayScore: 1,
+    actualAwayScore: 2,
   },
   {
     id: '2',
