@@ -4,10 +4,12 @@ import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { ScreenHeader } from '@/components/ScreenHeader';
 import { matches } from '@/data/matches';
 import { usePredictions } from '../../contexts/PredictionsContext';
+import { useUserProfile } from '../../contexts/UserProfileContext';
 import { calculatePredictionStats } from '../../utils/predictionStats';
 
 export default function RankingScreen() {
   const { predictions } = usePredictions();
+  const { playerName } = useUserProfile();
 
   const stats = calculatePredictionStats(matches, predictions);
 
@@ -28,7 +30,7 @@ export default function RankingScreen() {
         </View>
 
         <View style={styles.userInfo}>
-          <Text style={styles.userName}>Tú</Text>
+          <Text style={styles.userName}>{playerName}</Text>
           <Text style={styles.userDescription}>
             Ranking local de prueba. Luego aquí aparecerán tus amigos.
           </Text>
