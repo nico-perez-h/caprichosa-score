@@ -22,6 +22,7 @@ type PredictionsContextValue = {
   getPrediction: (matchId: string) => Prediction | null;
   savePrediction: (prediction: Prediction) => void;
   deletePrediction: (matchId: string) => void;
+  clearPredictions: () => void;
 };
 
 const PredictionsContext = createContext<PredictionsContextValue | undefined>(
@@ -95,6 +96,11 @@ export function PredictionsProvider({ children }: PredictionsProviderProps) {
     });
   }
 
+  function clearPredictions() {
+    setPredictions({});
+    AsyncStorage.removeItem(PREDICTIONS_STORAGE_KEY).catch(() => {});
+  }
+
   return (
     <PredictionsContext.Provider
       value={{
@@ -102,6 +108,7 @@ export function PredictionsProvider({ children }: PredictionsProviderProps) {
         getPrediction,
         savePrediction,
         deletePrediction,
+        clearPredictions,
       }}
     >
       {children}

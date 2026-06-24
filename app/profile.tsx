@@ -32,12 +32,13 @@ function getInitials(name: string) {
 }
 
 export default function ProfileScreen() {
-  const { predictions } = usePredictions();
+  const { predictions, clearPredictions } = usePredictions();
   const { playerName, savePlayerName } = useUserProfile();
 
   const [nameInput, setNameInput] = useState(playerName);
 
   const stats = calculatePredictionStats(matches, predictions);
+  const totalPredictions = Object.keys(predictions).length;
 
   function handleSaveName() {
     savePlayerName(nameInput);
@@ -45,6 +46,39 @@ export default function ProfileScreen() {
     Alert.alert(
       'Nombre guardado',
       'Tu nombre de jugador se guardó correctamente.'
+    );
+  }
+
+  function handleClearPredictions() {
+    if (totalPredictions === 0) {
+      Alert.alert(
+        'Sin predicciones',
+        'No tienes predicciones guardadas para borrar.'
+      );
+      return;
+    }
+
+    Alert.alert(
+      'Borrar predicciones',
+      '¿Estás seguro de que quieres borrar todas tus predicciones guardadas? Esta acción no se puede deshacer.',
+      [
+        {
+          text: 'Cancelar',
+          style: 'cancel',
+        },
+        {
+          text: 'Borrar todo',
+          style: 'destructive',
+          onPress: () => {
+            clearPredictions();
+
+            Alert.alert(
+              'Predicciones borradas',
+              'Todas tus predicciones fueron eliminadas.'
+            );
+          },
+        },
+      ]
     );
   }
 
@@ -138,6 +172,26 @@ export default function ProfileScreen() {
               de cuenta.
             </Text>
           </View>
+        </View>
+
+        <View style={styles.dangerCard}>
+          <Text style={styles.dangerTitle}>Zona de pruebas</Text>
+          <Text style={styles.dangerText}>
+            Borra tus predicciones guardadas para reiniciar las pruebas de la app
+            sin desinstalarla.
+          </Text>
+
+          <Pressable
+            style={({ pressed }) => [
+              styles.deleteButton,
+              pressed && styles.buttonPressed,
+            ]}
+            onPress={handleClearPredictions}
+          >
+            <Text style={styles.deleteButtonText}>
+              Borrar todas las predicciones
+            </Text>
+          </Pressable>
         </View>
 
         <View style={styles.infoCard}>
@@ -305,6 +359,39 @@ const styles = StyleSheet.create({
     lineHeight: 20,
     fontWeight: '600',
     color: '#6B7280',
+  },
+  dangerCard: {
+    backgroundColor: '#FEF2F2',
+    borderRadius: 20,
+    padding: 18,
+    borderWidth: 1,
+    borderColor: '#FECACA',
+    marginBottom: 16,
+  },
+  dangerTitle: {
+    fontSize: 18,
+    fontWeight: '900',
+    color: '#991B1B',
+    marginBottom: 8,
+  },
+  dangerText: {
+    fontSize: 14,
+    lineHeight: 20,
+    fontWeight: '600',
+    color: '#7F1D1D',
+    marginBottom: 14,
+  },
+  deleteButton: {
+    height: 50,
+    borderRadius: 14,
+    backgroundColor: '#991B1B',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  deleteButtonText: {
+    fontSize: 15,
+    fontWeight: '900',
+    color: '#FFFFFF',
   },
   infoCard: {
     backgroundColor: '#EFF6FF',
