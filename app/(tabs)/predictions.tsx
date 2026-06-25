@@ -1,10 +1,11 @@
 import { router } from 'expo-router';
+import { useEffect, useState } from 'react';
 import { SectionList, StyleSheet, Text, View } from 'react-native';
 
 import { MatchCard } from '@/components/MatchCard';
 import { ScoringRulesCard } from '@/components/ScoringRulesCard';
 import { ScreenHeader } from '@/components/ScreenHeader';
-import { matches } from '@/data/matches';
+import { getMatches } from '@/services/matchesService';
 import type { Match } from '@/types/match';
 import { usePredictions } from '../../contexts/PredictionsContext';
 import { calculateTotalPredictionPoints } from '../../utils/scoring';
@@ -18,7 +19,25 @@ type PredictionSection = {
 export default function PredictionsScreen() {
   const { predictions, getPrediction } = usePredictions();
 
-  const predictedMatches = matches.filter((match) => Boolean(predictions[match.id]));
+  const [allMatches, setAllMatches] = useState<Match[]>([]);
+  const [isLoadingMatches, setIsLoadingMatches] = useState(true);
+
+  useEffect(() => {
+    async function loadMatches() {
+      setIsLoadingMatches(true);
+
+      const loadedMatches = await getMatches();
+
+      setAllMatches(loadedMatches);
+      setIsLoadingMatches(false);
+    }
+
+    loadMatches();
+  }, []);
+
+  const predictedMatches = allMatches.filter((match) =>
+    Boolean(predictions[match.id])
+  );
 
   const pendingPredictedMatches = predictedMatches.filter(
     (match) =>
@@ -30,7 +49,7 @@ export default function PredictionsScreen() {
       match.actualHomeScore !== undefined && match.actualAwayScore !== undefined
   );
 
-  const totalPoints = calculateTotalPredictionPoints(matches, predictions);
+  const totalPoints = calculateTotalPredictionPoints(allMatches, predictions);
   const totalPredictions = predictedMatches.length;
 
   const sections: PredictionSection[] = [
@@ -94,17 +113,26 @@ export default function PredictionsScreen() {
           </View>
         )}
         renderItem={({ item }) => (
-          <MatchCard
-            match={item}
-            savedPrediction={getPrediction(item.id)}
-            onPress={() => router.push(`/match/${item.id}` as never)}
-          />
+          <View style={styles.matchCardWrapper}>
+            <MatchCard
+              match={item}
+              savedPrediction={getPrediction(item.id)}
+              onPress={() => router.push(`/match/${item.id}` as never)}
+            />
+          </View>
         )}
         ListEmptyComponent={
           <View style={styles.emptyCard}>
-            <Text style={styles.emptyTitle}>Aún no tienes predicciones</Text>
+            <Text style={styles.emptyTitle}>
+              {isLoadingMatches
+                ? 'Cargando predicciones...'
+                : 'Aún no tienes predicciones'}
+            </Text>
+
             <Text style={styles.emptyText}>
-              Entra a un partido por jugar y guarda tu primera predicción.
+              {isLoadingMatches
+                ? 'Estamos revisando tus partidos y predicciones guardadas.'
+                : 'Entra a un partido por jugar y guarda tu primera predicción.'}
             </Text>
           </View>
         }
@@ -169,6 +197,9 @@ const styles = StyleSheet.create({
     lineHeight: 20,
     fontWeight: '600',
     color: '#6B7280',
+  },
+  matchCardWrapper: {
+    marginBottom: 14,
   },
   emptyCard: {
     backgroundColor: '#FFFFFF',
