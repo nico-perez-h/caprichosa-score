@@ -19,6 +19,22 @@ import { usePredictions } from '../../contexts/PredictionsContext';
 import { getMatchById } from '../../services/matchesService';
 import type { Match } from '../../types/match';
 
+function getLocationText(match: Match) {
+  const locationParts = [match.stadium, match.city].filter(
+    (item) =>
+      item &&
+      item !== 'Estadio no disponible' &&
+      item !== 'Ciudad no disponible' &&
+      item !== 'No disponible'
+  );
+
+  return locationParts.join(' · ');
+}
+
+function hasRealLocation(match: Match) {
+  return getLocationText(match).length > 0;
+}
+
 export default function MatchDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const {
@@ -90,6 +106,7 @@ export default function MatchDetailScreen() {
   const currentMatch = match;
   const savedPrediction = getPrediction(currentMatch.id);
   const isPredictionLocked = currentMatch.status !== 'Por jugar';
+  const locationText = getLocationText(currentMatch);
 
   function decreaseHomeScore() {
     setHomeScore((currentScore) => Math.max(0, currentScore - 1));
@@ -194,9 +211,10 @@ export default function MatchDetailScreen() {
             <Text style={styles.infoText}>
               {currentMatch.date} · {currentMatch.kickoffTime}
             </Text>
-            <Text style={styles.infoText}>
-              {currentMatch.stadium} · {currentMatch.city}
-            </Text>
+
+            {hasRealLocation(currentMatch) ? (
+              <Text style={styles.infoText}>{locationText}</Text>
+            ) : null}
           </View>
         </View>
 
