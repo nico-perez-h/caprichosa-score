@@ -95,6 +95,28 @@ function getScoreValue(value: unknown) {
   return typeof value === 'number' ? value : undefined;
 }
 
+function getTournamentIdFromCompetition(competitionName: string) {
+  const normalizedCompetitionName = competitionName.toLowerCase();
+
+  if (normalizedCompetitionName.includes('world cup')) {
+    return 'world-cup-2026';
+  }
+
+  if (normalizedCompetitionName.includes('champions league')) {
+    return 'champions-league';
+  }
+
+  if (normalizedCompetitionName.includes('premier league')) {
+    return 'premier-league';
+  }
+
+  if (normalizedCompetitionName.includes('libertadores')) {
+    return 'libertadores';
+  }
+
+  return 'football-data';
+}
+
 function mapFootballDataMatch(match: any): FootballDataMatchSummary {
   return {
     id: String(match?.id ?? ''),
@@ -107,17 +129,20 @@ function mapFootballDataMatch(match: any): FootballDataMatchSummary {
 }
 
 function mapFootballDataMatchToAppMatch(match: any): Match {
+  const competitionName =
+    match?.competition?.name ?? 'Competición no disponible';
+
   const actualHomeScore = getScoreValue(match?.score?.fullTime?.home);
   const actualAwayScore = getScoreValue(match?.score?.fullTime?.away);
 
   return {
     id: String(match?.id ?? ''),
-    tournamentId: 'football-data',
+    tournamentId: getTournamentIdFromCompetition(competitionName),
     homeTeam: match?.homeTeam?.name ?? 'Local',
     awayTeam: match?.awayTeam?.name ?? 'Visitante',
     date: formatFootballDataDate(match?.utcDate),
     kickoffTime: formatFootballDataTime(match?.utcDate),
-    tournament: match?.competition?.name ?? 'Competición no disponible',
+    tournament: competitionName,
     group: match?.group ?? match?.stage ?? 'Fase no disponible',
     stadium: 'Estadio no disponible',
     city: 'Ciudad no disponible',

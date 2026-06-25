@@ -8,7 +8,7 @@ function wait(milliseconds: number) {
   });
 }
 
-async function getRealMatchesWithFallback(): Promise<Match[]> {
+async function getRealMatchesOrNull(): Promise<Match[] | null> {
   try {
     const realMatches = await getFootballDataTodayAppMatches();
 
@@ -16,10 +16,20 @@ async function getRealMatchesWithFallback(): Promise<Match[]> {
       return realMatches;
     }
 
-    return matches;
+    return null;
   } catch {
-    return matches;
+    return null;
   }
+}
+
+async function getRealMatchesWithFallback(): Promise<Match[]> {
+  const realMatches = await getRealMatchesOrNull();
+
+  if (realMatches) {
+    return realMatches;
+  }
+
+  return matches;
 }
 
 export async function getMatches(): Promise<Match[]> {
@@ -28,11 +38,21 @@ export async function getMatches(): Promise<Match[]> {
   return getRealMatchesWithFallback();
 }
 
-export async function getMatchesByTournament(tournamentId: string): Promise<Match[]> {
+export async function getMatchesByTournament(
+  tournamentId: string
+): Promise<Match[]> {
   await wait(500);
 
-  if (tournamentId === 'football-data') {
-    return getRealMatchesWithFallback();
+  const realMatches = await getRealMatchesOrNull();
+
+  if (realMatches) {
+    const realTournamentMatches = realMatches.filter(
+      (match) => match.tournamentId === tournamentId
+    );
+
+    if (realTournamentMatches.length > 0) {
+      return realTournamentMatches;
+    }
   }
 
   return matches.filter((match) => match.tournamentId === tournamentId);
@@ -47,12 +67,13 @@ export async function getMatchById(matchId: string): Promise<Match | null> {
     return mockMatch;
   }
 
-  try {
-    const realMatches = await getFootballDataTodayAppMatches();
-    const realMatch = realMatches.find((match) => match.id === matchId);
+  const realMatches = await getRealMatchesOrNull();
 
-    return realMatch ?? null;
-  } catch {
+  if (!realMatches) {
     return null;
   }
+
+  const realMatch = realMatches.find((match) => match.id === matchId);
+
+  return realMatch ?? null;
 }
