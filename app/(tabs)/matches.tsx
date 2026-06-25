@@ -1,3 +1,4 @@
+import { router } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -37,6 +38,10 @@ export default function MatchesScreen() {
     return Boolean((predictions as Record<string, Prediction>)[matchId]);
   }
 
+  function openMatch(matchId: string) {
+    router.push(`/match/${matchId}` as never);
+  }
+
   const filteredMatches = filterMatches({
     matches: allMatches,
     selectedFilter,
@@ -56,7 +61,10 @@ export default function MatchesScreen() {
           subtitle="Busca partidos, revisa estados y realiza tus predicciones."
         />
 
-        <MatchSearchInput searchTerm={searchTerm} onChangeSearchTerm={setSearchTerm} />
+        <MatchSearchInput
+          searchTerm={searchTerm}
+          onChangeSearchTerm={setSearchTerm}
+        />
 
         <MatchFilters
           selectedFilter={selectedFilter}
@@ -83,7 +91,13 @@ export default function MatchesScreen() {
 
         {!isLoadingMatches
           ? filteredMatches.map((match) => (
-              <MatchCard key={match.id} match={match} />
+              <View key={match.id} style={styles.matchCardWrapper}>
+                <MatchCard
+                  match={match}
+                  savedPrediction={predictions[match.id] ?? null}
+                  onPress={() => openMatch(match.id)}
+                />
+              </View>
             ))
           : null}
       </ScrollView>
@@ -103,6 +117,9 @@ const styles = StyleSheet.create({
     paddingHorizontal: 24,
     paddingTop: 24,
     paddingBottom: 32,
+  },
+  matchCardWrapper: {
+    marginBottom: 14,
   },
   emptyCard: {
     backgroundColor: '#FFFFFF',

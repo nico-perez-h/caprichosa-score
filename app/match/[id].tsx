@@ -15,8 +15,9 @@ import { PredictionPointsSummary } from '@/components/PredictionPointsSummary';
 import { PredictionStatusNotice } from '@/components/PredictionStatusNotice';
 import { ScreenHeader } from '@/components/ScreenHeader';
 import { StatusBadge } from '@/components/StatusBadge';
-import { matches } from '@/data/matches';
 import { usePredictions } from '../../contexts/PredictionsContext';
+import { getMatchById } from '../../services/matchesService';
+import type { Match } from '../../types/match';
 
 export default function MatchDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -26,23 +27,53 @@ export default function MatchDetailScreen() {
     deletePrediction: deletePredictionInStore,
   } = usePredictions();
 
-  const match = matches.find((item) => item.id === id);
-
+  const [match, setMatch] = useState<Match | null>(null);
+  const [isLoadingMatch, setIsLoadingMatch] = useState(true);
   const [homeScore, setHomeScore] = useState(0);
   const [awayScore, setAwayScore] = useState(0);
 
   useEffect(() => {
-    if (!match) {
-      return;
+    async function loadMatch() {
+      if (!id) {
+        setIsLoadingMatch(false);
+        return;
+      }
+
+      setIsLoadingMatch(true);
+
+      const loadedMatch = await getMatchById(id);
+
+      setMatch(loadedMatch);
+
+      if (loadedMatch) {
+        const savedPrediction = getPrediction(loadedMatch.id);
+
+        if (savedPrediction) {
+          setHomeScore(savedPrediction.homeScore);
+          setAwayScore(savedPrediction.awayScore);
+        } else {
+          setHomeScore(0);
+          setAwayScore(0);
+        }
+      }
+
+      setIsLoadingMatch(false);
     }
 
-    const savedPrediction = getPrediction(match.id);
+    loadMatch();
+  }, [id, getPrediction]);
 
-    if (savedPrediction) {
-      setHomeScore(savedPrediction.homeScore);
-      setAwayScore(savedPrediction.awayScore);
-    }
-  }, [match, getPrediction]);
+  if (isLoadingMatch) {
+    return (
+      <SafeAreaView style={styles.notFoundScreen}>
+        <Pressable style={styles.backButton} onPress={() => router.back()}>
+          <Text style={styles.backButtonText}>← Volver</Text>
+        </Pressable>
+
+        <Text style={styles.notFoundTitle}>Cargando partido...</Text>
+      </SafeAreaView>
+    );
+  }
 
   if (!match) {
     return (

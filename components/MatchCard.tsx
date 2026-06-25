@@ -16,7 +16,11 @@ type MatchCardProps = {
   onPress?: () => void;
 };
 
-export function MatchCard({ match, savedPrediction, onPress }: MatchCardProps) {
+export function MatchCard({
+  match,
+  savedPrediction,
+  onPress,
+}: MatchCardProps) {
   const points = calculatePredictionPoints(
     match,
     savedPrediction
