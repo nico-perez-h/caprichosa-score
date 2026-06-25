@@ -1,4 +1,4 @@
-import { Ionicons } from '@expo/vector-icons';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
@@ -28,7 +28,7 @@ export default function HomeScreen() {
       showsVerticalScrollIndicator={false}
     >
       <View style={styles.logoBox}>
-        <Ionicons name="football-outline" size={34} color="#FFFFFF" />
+        <MaterialCommunityIcons name="soccer" size={45} color="#FFFFFF" />
       </View>
 
       <ScreenHeader

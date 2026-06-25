@@ -1,10 +1,7 @@
-import { Ionicons } from '@expo/vector-icons';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { Tabs } from 'expo-router';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 export default function TabLayout() {
-  const insets = useSafeAreaInsets();
-
   return (
     <Tabs
       screenOptions={{
@@ -12,16 +9,15 @@ export default function TabLayout() {
         tabBarActiveTintColor: '#111827',
         tabBarInactiveTintColor: '#9CA3AF',
         tabBarStyle: {
-          height: 64 + insets.bottom,
+          height: 78,
           paddingTop: 8,
-          paddingBottom: Math.max(insets.bottom, 12),
-          borderTopWidth: 1,
-          borderTopColor: '#E5E7EB',
+          paddingBottom: 10,
           backgroundColor: '#FFFFFF',
+          borderTopColor: '#E5E7EB',
         },
         tabBarLabelStyle: {
-          fontSize: 11,
-          fontWeight: '600',
+          fontSize: 12,
+          fontWeight: '800',
         },
       }}
     >
@@ -30,7 +26,11 @@ export default function TabLayout() {
         options={{
           title: 'Inicio',
           tabBarIcon: ({ color, size }) => (
-            <Ionicons name="home-outline" size={size} color={color} />
+            <MaterialCommunityIcons
+              name="home-outline"
+              size={size}
+              color={color}
+            />
           ),
         }}
       />
@@ -40,7 +40,11 @@ export default function TabLayout() {
         options={{
           title: 'Torneos',
           tabBarIcon: ({ color, size }) => (
-            <Ionicons name="trophy-outline" size={size} color={color} />
+            <MaterialCommunityIcons
+              name="trophy-outline"
+              size={size}
+              color={color}
+            />
           ),
         }}
       />
@@ -50,7 +54,11 @@ export default function TabLayout() {
         options={{
           title: 'Partidos',
           tabBarIcon: ({ color, size }) => (
-            <Ionicons name="football-outline" size={size} color={color} />
+            <MaterialCommunityIcons
+              name="soccer"
+              size={size}
+              color={color}
+            />
           ),
         }}
       />
@@ -60,7 +68,11 @@ export default function TabLayout() {
         options={{
           title: 'Predicciones',
           tabBarIcon: ({ color, size }) => (
-            <Ionicons name="clipboard-outline" size={size} color={color} />
+            <MaterialCommunityIcons
+              name="clipboard-text-outline"
+              size={size}
+              color={color}
+            />
           ),
         }}
       />
@@ -70,7 +82,11 @@ export default function TabLayout() {
         options={{
           title: 'Ranking',
           tabBarIcon: ({ color, size }) => (
-            <Ionicons name="medal-outline" size={size} color={color} />
+            <MaterialCommunityIcons
+              name="medal-outline"
+              size={size}
+              color={color}
+            />
           ),
         }}
       />
