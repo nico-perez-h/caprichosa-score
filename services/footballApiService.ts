@@ -22,14 +22,43 @@ function buildFootballDataUrl(path: string) {
   return new URL(`${footballApiConfig.baseUrl}${path}`);
 }
 
+function formatFootballDataStatus(status: string) {
+  if (status === 'IN_PLAY' || status === 'PAUSED') return 'En vivo';
+  if (status === 'TIMED' || status === 'SCHEDULED') return 'Por jugar';
+  if (status === 'FINISHED') return 'Finalizado';
+  if (status === 'POSTPONED') return 'Postergado';
+  if (status === 'CANCELLED') return 'Cancelado';
+
+  return status || 'Estado no disponible';
+}
+
+function formatFootballDataDate(utcDate: string) {
+  if (!utcDate) return 'Fecha no disponible';
+
+  const date = new Date(utcDate);
+
+  if (Number.isNaN(date.getTime())) {
+    return 'Fecha no disponible';
+  }
+
+  return new Intl.DateTimeFormat('es-BO', {
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: false,
+  }).format(date);
+}
+
 function mapFootballDataMatch(match: any): FootballDataMatchSummary {
   return {
     id: String(match?.id ?? ''),
     homeTeam: match?.homeTeam?.name ?? 'Local',
     awayTeam: match?.awayTeam?.name ?? 'Visitante',
     competitionName: match?.competition?.name ?? 'Competición no disponible',
-    startingAt: match?.utcDate ?? 'Fecha no disponible',
-    status: match?.status ?? 'Estado no disponible',
+    startingAt: formatFootballDataDate(match?.utcDate),
+    status: formatFootballDataStatus(match?.status),
   };
 }
 
