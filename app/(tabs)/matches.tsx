@@ -1,67 +1,93 @@
-import { router } from 'expo-router';
-import { useState } from 'react';
-import { FlatList, StyleSheet, Text, View } from 'react-native';
+import { useEffect, useState } from 'react';
+import { ScrollView, StyleSheet, Text, View } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { MatchCard } from '@/components/MatchCard';
 import { MatchFilters } from '@/components/MatchFilters';
 import { MatchSearchInput } from '@/components/MatchSearchInput';
 import { ScreenHeader } from '@/components/ScreenHeader';
-import { matches } from '@/data/matches';
+import type { Prediction } from '../../contexts/PredictionsContext';
 import { usePredictions } from '../../contexts/PredictionsContext';
-import {
-  filterMatches,
-  type MatchFilter,
-} from '../../utils/matchFilters';
+import { getMatches } from '../../services/matchesService';
+import type { Match } from '../../types/match';
+import { filterMatches, type MatchFilter } from '../../utils/matchFilters';
 
 export default function MatchesScreen() {
-  const { getPrediction } = usePredictions();
+  const { predictions } = usePredictions();
 
+  const [allMatches, setAllMatches] = useState<Match[]>([]);
   const [selectedFilter, setSelectedFilter] = useState<MatchFilter>('all');
   const [searchTerm, setSearchTerm] = useState('');
+  const [isLoadingMatches, setIsLoadingMatches] = useState(true);
+
+  useEffect(() => {
+    async function loadMatches() {
+      setIsLoadingMatches(true);
+
+      const loadedMatches = await getMatches();
+
+      setAllMatches(loadedMatches);
+      setIsLoadingMatches(false);
+    }
+
+    loadMatches();
+  }, []);
+
+  function hasPrediction(matchId: string) {
+    return Boolean((predictions as Record<string, Prediction>)[matchId]);
+  }
 
   const filteredMatches = filterMatches({
-    matches,
+    matches: allMatches,
     selectedFilter,
     searchTerm,
-    hasPrediction: (matchId) => Boolean(getPrediction(matchId)),
+    hasPrediction,
   });
 
   return (
-    <View style={styles.screen}>
-      <ScreenHeader
-        title="Partidos"
-        subtitle="Busca un equipo, filtra los partidos y elige dónde quieres hacer tu predicción."
-      />
+    <SafeAreaView style={styles.screen}>
+      <ScrollView
+        style={styles.scroll}
+        contentContainerStyle={styles.content}
+        showsVerticalScrollIndicator={false}
+      >
+        <ScreenHeader
+          title="Partidos"
+          subtitle="Busca partidos, revisa estados y realiza tus predicciones."
+        />
 
-      <MatchSearchInput value={searchTerm} onChangeText={setSearchTerm} />
+        <MatchSearchInput searchTerm={searchTerm} onChangeSearchTerm={setSearchTerm} />
 
-      <MatchFilters
-        selectedFilter={selectedFilter}
-        onChangeFilter={setSelectedFilter}
-      />
+        <MatchFilters
+          selectedFilter={selectedFilter}
+          onSelectFilter={setSelectedFilter}
+        />
 
-      <FlatList
-        data={filteredMatches}
-        keyExtractor={(item) => item.id}
-        contentContainerStyle={styles.list}
-        keyboardShouldPersistTaps="handled"
-        renderItem={({ item }) => (
-          <MatchCard
-            match={item}
-            savedPrediction={getPrediction(item.id)}
-            onPress={() => router.push(`/match/${item.id}` as never)}
-          />
-        )}
-        ListEmptyComponent={
+        {isLoadingMatches ? (
+          <View style={styles.emptyCard}>
+            <Text style={styles.emptyTitle}>Cargando partidos...</Text>
+            <Text style={styles.emptyText}>
+              Estamos preparando la lista de partidos.
+            </Text>
+          </View>
+        ) : null}
+
+        {!isLoadingMatches && filteredMatches.length === 0 ? (
           <View style={styles.emptyCard}>
             <Text style={styles.emptyTitle}>No encontramos partidos</Text>
             <Text style={styles.emptyText}>
-              Prueba con otro equipo o cambia el filtro seleccionado.
+              Prueba con otro filtro o cambia el texto de búsqueda.
             </Text>
           </View>
-        }
-      />
-    </View>
+        ) : null}
+
+        {!isLoadingMatches
+          ? filteredMatches.map((match) => (
+              <MatchCard key={match.id} match={match} />
+            ))
+          : null}
+      </ScrollView>
+    </SafeAreaView>
   );
 }
 
@@ -69,29 +95,33 @@ const styles = StyleSheet.create({
   screen: {
     flex: 1,
     backgroundColor: '#F9FAFB',
-    paddingHorizontal: 24,
-    paddingTop: 72,
   },
-  list: {
-    paddingBottom: 24,
-    gap: 12,
+  scroll: {
+    flex: 1,
+  },
+  content: {
+    paddingHorizontal: 24,
+    paddingTop: 24,
+    paddingBottom: 32,
   },
   emptyCard: {
     backgroundColor: '#FFFFFF',
-    borderRadius: 20,
+    borderRadius: 18,
     padding: 18,
     borderWidth: 1,
     borderColor: '#E5E7EB',
+    marginTop: 12,
   },
   emptyTitle: {
-    fontSize: 18,
-    fontWeight: '800',
+    fontSize: 16,
+    fontWeight: '900',
     color: '#111827',
-    marginBottom: 8,
+    marginBottom: 6,
   },
   emptyText: {
     fontSize: 14,
     lineHeight: 20,
+    fontWeight: '600',
     color: '#6B7280',
   },
 });

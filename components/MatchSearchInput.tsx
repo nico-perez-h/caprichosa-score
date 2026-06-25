@@ -1,64 +1,40 @@
-import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+import { StyleSheet, TextInput, View } from 'react-native';
 
 type MatchSearchInputProps = {
-  value: string;
-  onChangeText: (text: string) => void;
+  searchTerm: string;
+  onChangeSearchTerm: (searchTerm: string) => void;
 };
 
 export function MatchSearchInput({
-  value,
-  onChangeText,
+  searchTerm,
+  onChangeSearchTerm,
 }: MatchSearchInputProps) {
   return (
     <View style={styles.container}>
       <TextInput
-        value={value}
-        onChangeText={onChangeText}
-        placeholder="Buscar por equipo..."
+        value={searchTerm}
+        onChangeText={onChangeSearchTerm}
+        placeholder="Buscar equipo, grupo, estadio o ciudad"
         placeholderTextColor="#9CA3AF"
         style={styles.input}
       />
-
-      {value ? (
-        <Pressable style={styles.clearButton} onPress={() => onChangeText('')}>
-          <Text style={styles.clearButtonText}>×</Text>
-        </Pressable>
-      ) : null}
     </View>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
-    minHeight: 52,
-    borderRadius: 16,
+    marginBottom: 14,
+  },
+  input: {
+    height: 50,
+    borderRadius: 14,
     backgroundColor: '#FFFFFF',
     borderWidth: 1,
     borderColor: '#E5E7EB',
-    flexDirection: 'row',
-    alignItems: 'center',
     paddingHorizontal: 14,
-    marginBottom: 12,
-  },
-  input: {
-    flex: 1,
     fontSize: 15,
-    fontWeight: '600',
+    fontWeight: '700',
     color: '#111827',
-  },
-  clearButton: {
-    width: 30,
-    height: 30,
-    borderRadius: 999,
-    backgroundColor: '#F3F4F6',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginLeft: 8,
-  },
-  clearButtonText: {
-    fontSize: 22,
-    fontWeight: '800',
-    color: '#6B7280',
-    lineHeight: 24,
   },
 });

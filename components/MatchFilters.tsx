@@ -1,13 +1,16 @@
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, Text } from 'react-native';
 
-import type { MatchFilter } from '../utils/matchFilters';
+import type { MatchFilter } from '@/utils/matchFilters';
 
-type FilterOption = {
-  label: string;
-  value: MatchFilter;
+type MatchFiltersProps = {
+  selectedFilter: MatchFilter;
+  onSelectFilter: (filter: MatchFilter) => void;
 };
 
-const filterOptions: FilterOption[] = [
+const filters: {
+  label: string;
+  value: MatchFilter;
+}[] = [
   {
     label: 'Todos',
     value: 'all',
@@ -30,60 +33,63 @@ const filterOptions: FilterOption[] = [
   },
 ];
 
-type MatchFiltersProps = {
-  selectedFilter: MatchFilter;
-  onChangeFilter: (filter: MatchFilter) => void;
-};
-
 export function MatchFilters({
   selectedFilter,
-  onChangeFilter,
+  onSelectFilter,
 }: MatchFiltersProps) {
   return (
-    <View style={styles.filtersRow}>
-      {filterOptions.map((option) => {
-        const isSelected = selectedFilter === option.value;
+    <ScrollView
+      horizontal
+      showsHorizontalScrollIndicator={false}
+      contentContainerStyle={styles.content}
+      style={styles.container}
+    >
+      {filters.map((filter) => {
+        const isSelected = selectedFilter === filter.value;
 
         return (
           <Pressable
-            key={option.value}
+            key={filter.value}
             style={[
               styles.filterButton,
-              isSelected && styles.filterButtonSelected,
+              isSelected && styles.selectedFilterButton,
             ]}
-            onPress={() => onChangeFilter(option.value)}
+            onPress={() => onSelectFilter(filter.value)}
           >
             <Text
               style={[
                 styles.filterButtonText,
-                isSelected && styles.filterButtonTextSelected,
+                isSelected && styles.selectedFilterButtonText,
               ]}
             >
-              {option.label}
+              {filter.label}
             </Text>
           </Pressable>
         );
       })}
-    </View>
+    </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
-  filtersRow: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 8,
+  container: {
     marginBottom: 16,
   },
+  content: {
+    gap: 10,
+    paddingRight: 24,
+  },
   filterButton: {
+    height: 38,
     borderRadius: 999,
+    paddingHorizontal: 14,
+    alignItems: 'center',
+    justifyContent: 'center',
     backgroundColor: '#FFFFFF',
     borderWidth: 1,
     borderColor: '#E5E7EB',
-    paddingHorizontal: 14,
-    paddingVertical: 9,
   },
-  filterButtonSelected: {
+  selectedFilterButton: {
     backgroundColor: '#111827',
     borderColor: '#111827',
   },
@@ -92,7 +98,7 @@ const styles = StyleSheet.create({
     fontWeight: '800',
     color: '#6B7280',
   },
-  filterButtonTextSelected: {
+  selectedFilterButtonText: {
     color: '#FFFFFF',
   },
 });
