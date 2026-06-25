@@ -5,65 +5,49 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { ScreenHeader } from '@/components/ScreenHeader';
 import {
-  getSportMonksFixturesByDateRange,
-  getSportMonksInplayMatchSummaries,
+  getFootballDataTodayMatches,
   testFootballApiConnection,
-  type SportMonksFixtureSummary,
-  type SportMonksLiveMatchSummary,
+  type FootballDataMatchSummary,
 } from '@/services/footballApiService';
-
-function getTodayDate() {
-  return new Date().toISOString().split('T')[0];
-}
 
 export default function ApiStatusScreen() {
   const [statusMessage, setStatusMessage] = useState(
     'Presiona el botón para revisar la configuración.'
   );
-  const [liveMatches, setLiveMatches] = useState<SportMonksLiveMatchSummary[]>(
-    []
-  );
-  const [fixtures, setFixtures] = useState<SportMonksFixtureSummary[]>([]);
+  const [matches, setMatches] = useState<FootballDataMatchSummary[]>([]);
   const [isChecking, setIsChecking] = useState(false);
-  const [isLoadingFixtures, setIsLoadingFixtures] = useState(false);
+  const [isLoadingMatches, setIsLoadingMatches] = useState(false);
 
   async function handleCheckApi() {
     setIsChecking(true);
 
     const result = await testFootballApiConnection();
-
     setStatusMessage(result.message);
-
-    if (result.ok) {
-      const loadedLiveMatches = await getSportMonksInplayMatchSummaries();
-      setLiveMatches(loadedLiveMatches);
-    } else {
-      setLiveMatches([]);
-    }
 
     setIsChecking(false);
   }
 
-  async function handleLoadTodayFixtures() {
-    const today = getTodayDate();
-
-    setIsLoadingFixtures(true);
+  async function handleLoadTodayMatches() {
+    setIsLoadingMatches(true);
 
     try {
-      const loadedFixtures = await getSportMonksFixturesByDateRange(
-        today,
-        today
-      );
+      const loadedMatches = await getFootballDataTodayMatches();
+      setMatches(loadedMatches);
 
-      setFixtures(loadedFixtures);
-    } catch {
-      setFixtures([]);
       setStatusMessage(
-        'No se pudieron cargar los partidos por fecha. Revisa tu plan o el endpoint.'
+        `Partidos cargados desde Football-Data.org: ${loadedMatches.length}.`
       );
+    } catch (error) {
+      const errorMessage =
+        error instanceof Error
+          ? error.message
+          : 'No se pudieron cargar los partidos.';
+
+      setMatches([]);
+      setStatusMessage(errorMessage);
     }
 
-    setIsLoadingFixtures(false);
+    setIsLoadingMatches(false);
   }
 
   return (
@@ -79,7 +63,7 @@ export default function ApiStatusScreen() {
 
         <ScreenHeader
           title="Estado de API"
-          subtitle="Revisa si la configuración de la API de fútbol está lista."
+          subtitle="Revisa si la configuración de Football-Data.org está lista."
         />
 
         <View style={styles.card}>
@@ -103,67 +87,41 @@ export default function ApiStatusScreen() {
         </View>
 
         <View style={styles.card}>
-          <Text style={styles.cardTitle}>Partidos reales en vivo</Text>
-
-          {liveMatches.length === 0 ? (
-            <Text style={styles.cardText}>
-              No hay partidos en vivo en este momento o el endpoint no devolvió
-              partidos.
-            </Text>
-          ) : (
-            liveMatches.map((match) => (
-              <View key={match.id} style={styles.liveMatchCard}>
-                <Text style={styles.liveMatchTitle}>
-                  {match.homeTeam} vs {match.awayTeam}
-                </Text>
-
-                <Text style={styles.liveMatchText}>{match.leagueName}</Text>
-                <Text style={styles.liveMatchText}>Estado: {match.status}</Text>
-              </View>
-            ))
-          )}
-        </View>
-
-        <View style={styles.card}>
-          <Text style={styles.cardTitle}>Partidos por fecha</Text>
+          <Text style={styles.cardTitle}>Partidos de hoy</Text>
 
           <Text style={styles.cardText}>
-            Prueba cargar partidos reales de hoy usando fixtures de SportMonks.
+            Carga partidos reales usando el endpoint de Football-Data.org.
           </Text>
 
           <Pressable
             style={({ pressed }) => [
               styles.checkButton,
               pressed && styles.buttonPressed,
-              isLoadingFixtures && styles.disabledButton,
+              isLoadingMatches && styles.disabledButton,
             ]}
-            onPress={handleLoadTodayFixtures}
-            disabled={isLoadingFixtures}
+            onPress={handleLoadTodayMatches}
+            disabled={isLoadingMatches}
           >
             <Text style={styles.checkButtonText}>
-              {isLoadingFixtures ? 'Cargando partidos...' : 'Cargar partidos de hoy'}
+              {isLoadingMatches ? 'Cargando partidos...' : 'Cargar partidos de hoy'}
             </Text>
           </Pressable>
 
-          {fixtures.length === 0 ? (
-            <Text style={styles.noFixturesText}>
+          {matches.length === 0 ? (
+            <Text style={styles.noMatchesText}>
               Todavía no se cargaron partidos o no hay partidos disponibles para
               hoy.
             </Text>
           ) : (
-            fixtures.slice(0, 10).map((fixture) => (
-              <View key={fixture.id} style={styles.liveMatchCard}>
-                <Text style={styles.liveMatchTitle}>
-                  {fixture.homeTeam} vs {fixture.awayTeam}
+            matches.slice(0, 10).map((match) => (
+              <View key={match.id} style={styles.matchCard}>
+                <Text style={styles.matchTitle}>
+                  {match.homeTeam} vs {match.awayTeam}
                 </Text>
 
-                <Text style={styles.liveMatchText}>{fixture.leagueName}</Text>
-                <Text style={styles.liveMatchText}>
-                  Inicio: {fixture.startingAt}
-                </Text>
-                <Text style={styles.liveMatchText}>
-                  Estado: {fixture.status}
-                </Text>
+                <Text style={styles.matchText}>{match.competitionName}</Text>
+                <Text style={styles.matchText}>Inicio: {match.startingAt}</Text>
+                <Text style={styles.matchText}>Estado: {match.status}</Text>
               </View>
             ))
           )}
@@ -173,7 +131,7 @@ export default function ApiStatusScreen() {
           <Text style={styles.infoTitle}>Siguiente paso</Text>
           <Text style={styles.infoText}>
             Después convertiremos estos partidos reales al formato interno de la
-            app para poder mostrarlos como MatchCard.
+            app para poder mostrarlos con tu MatchCard sin cambiar el diseño.
           </Text>
         </View>
       </ScrollView>
@@ -243,25 +201,25 @@ const styles = StyleSheet.create({
     opacity: 0.75,
     transform: [{ scale: 0.99 }],
   },
-  liveMatchCard: {
+  matchCard: {
     backgroundColor: '#F9FAFB',
     borderRadius: 14,
     padding: 12,
     marginTop: 10,
   },
-  liveMatchTitle: {
+  matchTitle: {
     fontSize: 15,
     fontWeight: '900',
     color: '#111827',
     marginBottom: 4,
   },
-  liveMatchText: {
+  matchText: {
     fontSize: 13,
     lineHeight: 18,
     fontWeight: '600',
     color: '#6B7280',
   },
-  noFixturesText: {
+  noMatchesText: {
     marginTop: 12,
     fontSize: 13,
     lineHeight: 18,

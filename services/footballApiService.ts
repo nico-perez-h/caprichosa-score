@@ -6,113 +6,59 @@ import {
 type FootballApiResult = {
   ok: boolean;
   message: string;
-  liveMatchesCount?: number;
+  matchesCount?: number;
 };
 
-export type SportMonksLiveMatchSummary = {
+export type FootballDataMatchSummary = {
   id: string;
   homeTeam: string;
   awayTeam: string;
-  leagueName: string;
-  status: string;
-};
-
-export type SportMonksFixtureSummary = {
-  id: string;
-  name: string;
-  homeTeam: string;
-  awayTeam: string;
-  leagueName: string;
+  competitionName: string;
   startingAt: string;
   status: string;
 };
 
-function buildSportMonksUrl(path: string) {
-  const url = new URL(`${footballApiConfig.baseUrl}${path}`);
-
-  url.searchParams.append('api_token', footballApiConfig.apiKey);
-
-  return url;
+function buildFootballDataUrl(path: string) {
+  return new URL(`${footballApiConfig.baseUrl}${path}`);
 }
 
-function getParticipantName(match: any, location: 'home' | 'away') {
-  const participant = match?.participants?.find(
-    (item: any) => item?.meta?.location === location
-  );
-
-  return participant?.name ?? (location === 'home' ? 'Local' : 'Visitante');
-}
-
-function mapSportMonksLiveMatch(match: any): SportMonksLiveMatchSummary {
+function mapFootballDataMatch(match: any): FootballDataMatchSummary {
   return {
     id: String(match?.id ?? ''),
-    homeTeam: getParticipantName(match, 'home'),
-    awayTeam: getParticipantName(match, 'away'),
-    leagueName: match?.league?.name ?? 'Liga no disponible',
-    status: match?.state?.name ?? 'En vivo',
+    homeTeam: match?.homeTeam?.name ?? 'Local',
+    awayTeam: match?.awayTeam?.name ?? 'Visitante',
+    competitionName: match?.competition?.name ?? 'Competición no disponible',
+    startingAt: match?.utcDate ?? 'Fecha no disponible',
+    status: match?.status ?? 'Estado no disponible',
   };
 }
 
-function mapSportMonksFixture(match: any): SportMonksFixtureSummary {
-  return {
-    id: String(match?.id ?? ''),
-    name: match?.name ?? 'Partido sin nombre',
-    homeTeam: getParticipantName(match, 'home'),
-    awayTeam: getParticipantName(match, 'away'),
-    leagueName: match?.league?.name ?? 'Liga no disponible',
-    startingAt: match?.starting_at ?? 'Fecha no disponible',
-    status: match?.state?.name ?? 'Estado no disponible',
-  };
-}
+async function fetchFootballData(path: string) {
+  const url = buildFootballDataUrl(path);
 
-export async function getSportMonksInplayMatches() {
-  const url = buildSportMonksUrl('/livescores/inplay');
+  const response = await fetch(url.toString(), {
+    headers: {
+      'X-Auth-Token': footballApiConfig.apiKey,
+    },
+  });
 
-  url.searchParams.append(
-    'include',
-    'participants;scores;periods;events;league.country;round;state'
-  );
-
-  const response = await fetch(url.toString());
   const data = await response.json();
 
   if (!response.ok) {
     throw new Error(
       data?.message ??
-        `SportMonks respondió con error ${response.status}. Revisa tu token o tu plan.`
+        `Football-Data respondió con error ${response.status}. Revisa tu token o tu plan.`
     );
   }
 
-  return Array.isArray(data?.data) ? data.data : [];
+  return data;
 }
 
-export async function getSportMonksInplayMatchSummaries() {
-  const liveMatches = await getSportMonksInplayMatches();
+export async function getFootballDataTodayMatches() {
+  const data = await fetchFootballData('/matches');
+  const matches = Array.isArray(data?.matches) ? data.matches : [];
 
-  return liveMatches.map(mapSportMonksLiveMatch);
-}
-
-export async function getSportMonksFixturesByDateRange(
-  startDate: string,
-  endDate: string
-) {
-  const url = buildSportMonksUrl(`/fixtures/between/${startDate}/${endDate}`);
-
-  url.searchParams.append('include', 'participants;league;state');
-
-  const response = await fetch(url.toString());
-  const data = await response.json();
-
-  if (!response.ok) {
-    throw new Error(
-      data?.message ??
-        `SportMonks respondió con error ${response.status}. Revisa tu token, tu plan o el rango de fechas.`
-    );
-  }
-
-  const fixtures = Array.isArray(data?.data) ? data.data : [];
-
-  return fixtures.map(mapSportMonksFixture);
+  return matches.map(mapFootballDataMatch);
 }
 
 export async function testFootballApiConnection(): Promise<FootballApiResult> {
@@ -125,18 +71,18 @@ export async function testFootballApiConnection(): Promise<FootballApiResult> {
   }
 
   try {
-    const liveMatches = await getSportMonksInplayMatches();
+    const matches = await getFootballDataTodayMatches();
 
     return {
       ok: true,
-      liveMatchesCount: liveMatches.length,
-      message: `Conexión real exitosa con SportMonks. Partidos en vivo encontrados: ${liveMatches.length}.`,
+      matchesCount: matches.length,
+      message: `Conexión real exitosa con ${footballApiConfig.provider}. Partidos encontrados hoy: ${matches.length}.`,
     };
   } catch (error) {
     const errorMessage =
       error instanceof Error
         ? error.message
-        : 'No se pudo conectar con SportMonks.';
+        : 'No se pudo conectar con Football-Data.org.';
 
     return {
       ok: false,
