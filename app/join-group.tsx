@@ -13,11 +13,13 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { ScreenHeader } from '@/components/ScreenHeader';
 import { mockGroup } from '@/data/mockGroup';
+import { findGroupByInviteCode } from '@/services/groupsService';
 
 export default function JoinGroupScreen() {
   const [groupCode, setGroupCode] = useState('');
+  const [isJoining, setIsJoining] = useState(false);
 
-  function handleJoinGroup() {
+  async function handleJoinGroup() {
     const cleanCode = groupCode.trim().toUpperCase();
 
     if (!cleanCode) {
@@ -25,7 +27,13 @@ export default function JoinGroupScreen() {
       return;
     }
 
-    if (cleanCode !== mockGroup.inviteCode) {
+    setIsJoining(true);
+
+    const foundGroup = await findGroupByInviteCode(cleanCode);
+
+    setIsJoining(false);
+
+    if (!foundGroup) {
       Alert.alert(
         'Código inválido',
         'Ese código no existe en esta versión de prueba.'
@@ -35,7 +43,7 @@ export default function JoinGroupScreen() {
 
     Alert.alert(
       'Grupo encontrado',
-      `Te uniste al grupo ${mockGroup.name} correctamente.`,
+      `Te uniste al grupo ${foundGroup.name} correctamente.`,
       [
         {
           text: 'Ver grupo',
@@ -78,10 +86,14 @@ export default function JoinGroupScreen() {
             style={({ pressed }) => [
               styles.joinButton,
               pressed && styles.buttonPressed,
+              isJoining && styles.disabledButton,
             ]}
             onPress={handleJoinGroup}
+            disabled={isJoining}
           >
-            <Text style={styles.joinButtonText}>Unirme al grupo</Text>
+            <Text style={styles.joinButtonText}>
+              {isJoining ? 'Buscando grupo...' : 'Unirme al grupo'}
+            </Text>
           </Pressable>
 
           <Text style={styles.helperText}>
@@ -155,6 +167,9 @@ const styles = StyleSheet.create({
     backgroundColor: '#111827',
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  disabledButton: {
+    opacity: 0.65,
   },
   joinButtonText: {
     fontSize: 16,
