@@ -16,6 +16,32 @@ type MatchCardProps = {
   onPress?: () => void;
 };
 
+function hasRealLocation(match: Match) {
+  const hasStadium =
+    match.stadium &&
+    match.stadium !== 'Estadio no disponible' &&
+    match.stadium !== 'No disponible';
+
+  const hasCity =
+    match.city &&
+    match.city !== 'Ciudad no disponible' &&
+    match.city !== 'No disponible';
+
+  return Boolean(hasStadium || hasCity);
+}
+
+function getLocationText(match: Match) {
+  const locationParts = [match.stadium, match.city].filter(
+    (item) =>
+      item &&
+      item !== 'Estadio no disponible' &&
+      item !== 'Ciudad no disponible' &&
+      item !== 'No disponible'
+  );
+
+  return locationParts.join(' · ');
+}
+
 export function MatchCard({
   match,
   savedPrediction,
@@ -35,6 +61,8 @@ export function MatchCard({
   const hasFinalScore =
     match.actualHomeScore !== undefined && match.actualAwayScore !== undefined;
 
+  const locationText = getLocationText(match);
+
   return (
     <Pressable
       onPress={onPress}
@@ -45,7 +73,6 @@ export function MatchCard({
           <Text style={styles.tournament}>{match.tournament}</Text>
           <Text style={styles.group}>{match.group}</Text>
         </View>
-
         <StatusBadge label={match.status} />
       </View>
 
@@ -69,9 +96,10 @@ export function MatchCard({
         <Text style={styles.infoText}>
           {match.date} · {match.kickoffTime}
         </Text>
-        <Text style={styles.infoText}>
-          {match.stadium} · {match.city}
-        </Text>
+
+        {hasRealLocation(match) ? (
+          <Text style={styles.infoText}>{locationText}</Text>
+        ) : null}
       </View>
 
       {savedPrediction ? (
@@ -96,100 +124,104 @@ export function MatchCard({
 const styles = StyleSheet.create({
   card: {
     backgroundColor: '#FFFFFF',
-    borderRadius: 18,
+    borderRadius: 22,
     padding: 18,
     borderWidth: 1,
     borderColor: '#E5E7EB',
   },
   pressedCard: {
-    opacity: 0.8,
+    opacity: 0.75,
     transform: [{ scale: 0.99 }],
   },
   cardHeader: {
     flexDirection: 'row',
-    alignItems: 'center',
     justifyContent: 'space-between',
-    marginBottom: 14,
     gap: 12,
+    marginBottom: 18,
   },
   headerText: {
     flex: 1,
   },
   tournament: {
     fontSize: 13,
-    fontWeight: '700',
+    fontWeight: '800',
     color: '#6B7280',
   },
   group: {
     marginTop: 2,
-    fontSize: 13,
-    fontWeight: '800',
+    fontSize: 15,
+    fontWeight: '900',
     color: '#111827',
   },
   matchRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
+    gap: 10,
+    marginBottom: 16,
   },
   team: {
     flex: 1,
-    fontSize: 17,
-    fontWeight: '800',
+    fontSize: 18,
+    fontWeight: '900',
     color: '#111827',
     textAlign: 'center',
   },
   vs: {
     fontSize: 13,
-    fontWeight: '700',
+    fontWeight: '900',
     color: '#9CA3AF',
-    paddingHorizontal: 12,
   },
   resultBox: {
-    marginTop: 14,
+    backgroundColor: '#F3F4F6',
     borderRadius: 14,
-    backgroundColor: '#ECFDF5',
     padding: 12,
+    marginBottom: 12,
   },
   resultLabel: {
     fontSize: 12,
     fontWeight: '800',
-    color: '#047857',
+    color: '#6B7280',
     marginBottom: 4,
   },
   resultScore: {
     fontSize: 14,
     fontWeight: '900',
-    color: '#065F46',
+    color: '#111827',
   },
   infoBox: {
-    marginTop: 14,
-    gap: 4,
+    backgroundColor: '#F9FAFB',
+    borderRadius: 14,
+    padding: 12,
   },
   infoText: {
     fontSize: 13,
+    lineHeight: 19,
+    fontWeight: '700',
     color: '#6B7280',
-    textAlign: 'center',
   },
   predictionBox: {
-    marginTop: 14,
+    marginTop: 12,
+    backgroundColor: '#ECFDF5',
     borderRadius: 14,
-    backgroundColor: '#F3F4F6',
     padding: 12,
+    borderWidth: 1,
+    borderColor: '#A7F3D0',
   },
   predictionLabel: {
     fontSize: 12,
     fontWeight: '800',
-    color: '#6B7280',
+    color: '#047857',
     marginBottom: 4,
   },
   predictionScore: {
     fontSize: 14,
-    fontWeight: '800',
-    color: '#111827',
+    fontWeight: '900',
+    color: '#065F46',
   },
   pointsText: {
     marginTop: 6,
-    fontSize: 14,
+    fontSize: 13,
     fontWeight: '900',
     color: '#047857',
   },
@@ -197,6 +229,6 @@ const styles = StyleSheet.create({
     marginTop: 6,
     fontSize: 13,
     fontWeight: '800',
-    color: '#6B7280',
+    color: '#059669',
   },
 });
