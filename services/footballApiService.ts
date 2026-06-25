@@ -9,6 +9,14 @@ type FootballApiResult = {
   liveMatchesCount?: number;
 };
 
+export type SportMonksLiveMatchSummary = {
+  id: string;
+  homeTeam: string;
+  awayTeam: string;
+  leagueName: string;
+  status: string;
+};
+
 function buildSportMonksUrl(path: string) {
   const url = new URL(`${footballApiConfig.baseUrl}${path}`);
 
@@ -17,12 +25,30 @@ function buildSportMonksUrl(path: string) {
   return url;
 }
 
+function getParticipantName(match: any, location: 'home' | 'away') {
+  const participant = match?.participants?.find(
+    (item: any) => item?.meta?.location === location
+  );
+
+  return participant?.name ?? (location === 'home' ? 'Local' : 'Visitante');
+}
+
+function mapSportMonksLiveMatch(match: any): SportMonksLiveMatchSummary {
+  return {
+    id: String(match?.id ?? ''),
+    homeTeam: getParticipantName(match, 'home'),
+    awayTeam: getParticipantName(match, 'away'),
+    leagueName: match?.league?.name ?? 'Liga no disponible',
+    status: match?.state?.name ?? 'En vivo',
+  };
+}
+
 export async function getSportMonksInplayMatches() {
   const url = buildSportMonksUrl('/livescores/inplay');
 
   url.searchParams.append(
     'include',
-    'participants;scores;periods;events;league.country;round'
+    'participants;scores;periods;events;league.country;round;state'
   );
 
   const response = await fetch(url.toString());
@@ -36,6 +62,12 @@ export async function getSportMonksInplayMatches() {
   }
 
   return Array.isArray(data?.data) ? data.data : [];
+}
+
+export async function getSportMonksInplayMatchSummaries() {
+  const liveMatches = await getSportMonksInplayMatches();
+
+  return liveMatches.map(mapSportMonksLiveMatch);
 }
 
 export async function testFootballApiConnection(): Promise<FootballApiResult> {

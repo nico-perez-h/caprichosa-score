@@ -4,11 +4,18 @@ import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { ScreenHeader } from '@/components/ScreenHeader';
-import { testFootballApiConnection } from '@/services/footballApiService';
+import {
+  getSportMonksInplayMatchSummaries,
+  testFootballApiConnection,
+  type SportMonksLiveMatchSummary,
+} from '@/services/footballApiService';
 
 export default function ApiStatusScreen() {
   const [statusMessage, setStatusMessage] = useState(
     'Presiona el botón para revisar la configuración.'
+  );
+  const [liveMatches, setLiveMatches] = useState<SportMonksLiveMatchSummary[]>(
+    []
   );
   const [isChecking, setIsChecking] = useState(false);
 
@@ -18,6 +25,14 @@ export default function ApiStatusScreen() {
     const result = await testFootballApiConnection();
 
     setStatusMessage(result.message);
+
+    if (result.ok) {
+      const loadedLiveMatches = await getSportMonksInplayMatchSummaries();
+      setLiveMatches(loadedLiveMatches);
+    } else {
+      setLiveMatches([]);
+    }
+
     setIsChecking(false);
   }
 
@@ -57,11 +72,33 @@ export default function ApiStatusScreen() {
           </Pressable>
         </View>
 
+        <View style={styles.card}>
+          <Text style={styles.cardTitle}>Partidos reales en vivo</Text>
+
+          {liveMatches.length === 0 ? (
+            <Text style={styles.cardText}>
+              No hay partidos en vivo en este momento o el endpoint no devolvió
+              partidos.
+            </Text>
+          ) : (
+            liveMatches.map((match) => (
+              <View key={match.id} style={styles.liveMatchCard}>
+                <Text style={styles.liveMatchTitle}>
+                  {match.homeTeam} vs {match.awayTeam}
+                </Text>
+
+                <Text style={styles.liveMatchText}>{match.leagueName}</Text>
+                <Text style={styles.liveMatchText}>Estado: {match.status}</Text>
+              </View>
+            ))
+          )}
+        </View>
+
         <View style={styles.infoCard}>
           <Text style={styles.infoTitle}>Siguiente paso</Text>
           <Text style={styles.infoText}>
-            Después agregaremos las variables de entorno en tu archivo .env y
-            haremos una prueba real contra SportMonks.
+            Después haremos una función para traer partidos por fecha o por liga
+            y convertirlos al formato interno de la app.
           </Text>
         </View>
       </ScrollView>
@@ -130,6 +167,24 @@ const styles = StyleSheet.create({
   buttonPressed: {
     opacity: 0.75,
     transform: [{ scale: 0.99 }],
+  },
+  liveMatchCard: {
+    backgroundColor: '#F9FAFB',
+    borderRadius: 14,
+    padding: 12,
+    marginTop: 10,
+  },
+  liveMatchTitle: {
+    fontSize: 15,
+    fontWeight: '900',
+    color: '#111827',
+    marginBottom: 4,
+  },
+  liveMatchText: {
+    fontSize: 13,
+    lineHeight: 18,
+    fontWeight: '600',
+    color: '#6B7280',
   },
   infoCard: {
     backgroundColor: '#EFF6FF',
