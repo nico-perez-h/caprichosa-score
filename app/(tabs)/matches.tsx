@@ -9,7 +9,7 @@ import { MatchSearchInput } from '@/components/MatchSearchInput';
 import { ScreenHeader } from '@/components/ScreenHeader';
 import type { Prediction } from '../../contexts/PredictionsContext';
 import { usePredictions } from '../../contexts/PredictionsContext';
-import { getMatches } from '../../services/matchesService';
+import { getMatches } from '@/services/matchesService'
 import type { Match } from '../../types/match';
 import { filterMatches, type MatchFilter } from '../../utils/matchFilters';
 
@@ -57,8 +57,8 @@ export default function MatchesScreen() {
         showsVerticalScrollIndicator={false}
       >
         <ScreenHeader
-          title="Partidos"
-          subtitle="Busca partidos, revisa estados y realiza tus predicciones."
+          title="Partidos disponibles"
+          subtitle="Revisa partidos disponibles de hoy, estados y realiza tus predicciones."
         />
 
         <MatchSearchInput
@@ -75,7 +75,7 @@ export default function MatchesScreen() {
           <View style={styles.emptyCard}>
             <Text style={styles.emptyTitle}>Cargando partidos...</Text>
             <Text style={styles.emptyText}>
-              Estamos preparando la lista de partidos.
+              Estamos preparando los partidos disponibles para predecir.
             </Text>
           </View>
         ) : null}
@@ -115,7 +115,7 @@ const styles = StyleSheet.create({
   },
   content: {
     paddingHorizontal: 24,
-    paddingTop: 24,
+    paddingTop: 72,
     paddingBottom: 32,
   },
   matchCardWrapper: {
@@ -123,22 +123,21 @@ const styles = StyleSheet.create({
   },
   emptyCard: {
     backgroundColor: '#FFFFFF',
-    borderRadius: 18,
+    borderRadius: 20,
     padding: 18,
     borderWidth: 1,
     borderColor: '#E5E7EB',
-    marginTop: 12,
+    marginTop: 8,
   },
   emptyTitle: {
-    fontSize: 16,
+    fontSize: 18,
     fontWeight: '900',
     color: '#111827',
-    marginBottom: 6,
+    marginBottom: 8,
   },
   emptyText: {
     fontSize: 14,
     lineHeight: 20,
-    fontWeight: '600',
     color: '#6B7280',
   },
 });

@@ -8,6 +8,10 @@ function wait(milliseconds: number) {
   });
 }
 
+function getPredictableMatches(matchesList: Match[]) {
+  return matchesList.filter((match) => match.status === 'Por jugar');
+}
+
 async function getRealMatchesOrNull(): Promise<Match[] | null> {
   try {
     const realMatches = await getFootballDataTodayAppMatches();
@@ -38,6 +42,14 @@ export async function getMatches(): Promise<Match[]> {
   return getRealMatchesWithFallback();
 }
 
+export async function getPredictableMatchesOnly(): Promise<Match[]> {
+  await wait(500);
+
+  const allMatches = await getRealMatchesWithFallback();
+
+  return getPredictableMatches(allMatches);
+}
+
 export async function getMatchesByTournament(
   tournamentId: string
 ): Promise<Match[]> {
@@ -56,6 +68,16 @@ export async function getMatchesByTournament(
   }
 
   return matches.filter((match) => match.tournamentId === tournamentId);
+}
+
+export async function getPredictableMatchesByTournament(
+  tournamentId: string
+): Promise<Match[]> {
+  await wait(500);
+
+  const tournamentMatches = await getMatchesByTournament(tournamentId);
+
+  return getPredictableMatches(tournamentMatches);
 }
 
 export async function getMatchById(matchId: string): Promise<Match | null> {
