@@ -12,8 +12,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { ScreenHeader } from '@/components/ScreenHeader';
-
-const VALID_GROUP_CODE = 'CAPRI-2026';
+import { mockGroup } from '@/data/mockGroup';
 
 export default function JoinGroupScreen() {
   const [groupCode, setGroupCode] = useState('');
@@ -26,7 +25,7 @@ export default function JoinGroupScreen() {
       return;
     }
 
-    if (cleanCode !== VALID_GROUP_CODE) {
+    if (cleanCode !== mockGroup.inviteCode) {
       Alert.alert(
         'Código inválido',
         'Ese código no existe en esta versión de prueba.'
@@ -36,7 +35,7 @@ export default function JoinGroupScreen() {
 
     Alert.alert(
       'Grupo encontrado',
-      'Te uniste al grupo Caprichosa Mundial correctamente.',
+      `Te uniste al grupo ${mockGroup.name} correctamente.`,
       [
         {
           text: 'Ver grupo',
@@ -69,7 +68,7 @@ export default function JoinGroupScreen() {
           <TextInput
             value={groupCode}
             onChangeText={setGroupCode}
-            placeholder="Ej: CAPRI-2026"
+            placeholder={`Ej: ${mockGroup.inviteCode}`}
             placeholderTextColor="#9CA3AF"
             autoCapitalize="characters"
             style={styles.input}
@@ -86,7 +85,7 @@ export default function JoinGroupScreen() {
           </Pressable>
 
           <Text style={styles.helperText}>
-            Para probar, usa el código CAPRI-2026.
+            Para probar, usa el código {mockGroup.inviteCode}.
           </Text>
         </View>
 
