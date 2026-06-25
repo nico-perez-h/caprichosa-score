@@ -17,6 +17,16 @@ export type SportMonksLiveMatchSummary = {
   status: string;
 };
 
+export type SportMonksFixtureSummary = {
+  id: string;
+  name: string;
+  homeTeam: string;
+  awayTeam: string;
+  leagueName: string;
+  startingAt: string;
+  status: string;
+};
+
 function buildSportMonksUrl(path: string) {
   const url = new URL(`${footballApiConfig.baseUrl}${path}`);
 
@@ -40,6 +50,18 @@ function mapSportMonksLiveMatch(match: any): SportMonksLiveMatchSummary {
     awayTeam: getParticipantName(match, 'away'),
     leagueName: match?.league?.name ?? 'Liga no disponible',
     status: match?.state?.name ?? 'En vivo',
+  };
+}
+
+function mapSportMonksFixture(match: any): SportMonksFixtureSummary {
+  return {
+    id: String(match?.id ?? ''),
+    name: match?.name ?? 'Partido sin nombre',
+    homeTeam: getParticipantName(match, 'home'),
+    awayTeam: getParticipantName(match, 'away'),
+    leagueName: match?.league?.name ?? 'Liga no disponible',
+    startingAt: match?.starting_at ?? 'Fecha no disponible',
+    status: match?.state?.name ?? 'Estado no disponible',
   };
 }
 
@@ -68,6 +90,29 @@ export async function getSportMonksInplayMatchSummaries() {
   const liveMatches = await getSportMonksInplayMatches();
 
   return liveMatches.map(mapSportMonksLiveMatch);
+}
+
+export async function getSportMonksFixturesByDateRange(
+  startDate: string,
+  endDate: string
+) {
+  const url = buildSportMonksUrl(`/fixtures/between/${startDate}/${endDate}`);
+
+  url.searchParams.append('include', 'participants;league;state');
+
+  const response = await fetch(url.toString());
+  const data = await response.json();
+
+  if (!response.ok) {
+    throw new Error(
+      data?.message ??
+        `SportMonks respondió con error ${response.status}. Revisa tu token, tu plan o el rango de fechas.`
+    );
+  }
+
+  const fixtures = Array.isArray(data?.data) ? data.data : [];
+
+  return fixtures.map(mapSportMonksFixture);
 }
 
 export async function testFootballApiConnection(): Promise<FootballApiResult> {

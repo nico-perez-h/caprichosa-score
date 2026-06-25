@@ -5,10 +5,16 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { ScreenHeader } from '@/components/ScreenHeader';
 import {
+  getSportMonksFixturesByDateRange,
   getSportMonksInplayMatchSummaries,
   testFootballApiConnection,
+  type SportMonksFixtureSummary,
   type SportMonksLiveMatchSummary,
 } from '@/services/footballApiService';
+
+function getTodayDate() {
+  return new Date().toISOString().split('T')[0];
+}
 
 export default function ApiStatusScreen() {
   const [statusMessage, setStatusMessage] = useState(
@@ -17,7 +23,9 @@ export default function ApiStatusScreen() {
   const [liveMatches, setLiveMatches] = useState<SportMonksLiveMatchSummary[]>(
     []
   );
+  const [fixtures, setFixtures] = useState<SportMonksFixtureSummary[]>([]);
   const [isChecking, setIsChecking] = useState(false);
+  const [isLoadingFixtures, setIsLoadingFixtures] = useState(false);
 
   async function handleCheckApi() {
     setIsChecking(true);
@@ -34,6 +42,28 @@ export default function ApiStatusScreen() {
     }
 
     setIsChecking(false);
+  }
+
+  async function handleLoadTodayFixtures() {
+    const today = getTodayDate();
+
+    setIsLoadingFixtures(true);
+
+    try {
+      const loadedFixtures = await getSportMonksFixturesByDateRange(
+        today,
+        today
+      );
+
+      setFixtures(loadedFixtures);
+    } catch {
+      setFixtures([]);
+      setStatusMessage(
+        'No se pudieron cargar los partidos por fecha. Revisa tu plan o el endpoint.'
+      );
+    }
+
+    setIsLoadingFixtures(false);
   }
 
   return (
@@ -94,11 +124,56 @@ export default function ApiStatusScreen() {
           )}
         </View>
 
+        <View style={styles.card}>
+          <Text style={styles.cardTitle}>Partidos por fecha</Text>
+
+          <Text style={styles.cardText}>
+            Prueba cargar partidos reales de hoy usando fixtures de SportMonks.
+          </Text>
+
+          <Pressable
+            style={({ pressed }) => [
+              styles.checkButton,
+              pressed && styles.buttonPressed,
+              isLoadingFixtures && styles.disabledButton,
+            ]}
+            onPress={handleLoadTodayFixtures}
+            disabled={isLoadingFixtures}
+          >
+            <Text style={styles.checkButtonText}>
+              {isLoadingFixtures ? 'Cargando partidos...' : 'Cargar partidos de hoy'}
+            </Text>
+          </Pressable>
+
+          {fixtures.length === 0 ? (
+            <Text style={styles.noFixturesText}>
+              Todavía no se cargaron partidos o no hay partidos disponibles para
+              hoy.
+            </Text>
+          ) : (
+            fixtures.slice(0, 10).map((fixture) => (
+              <View key={fixture.id} style={styles.liveMatchCard}>
+                <Text style={styles.liveMatchTitle}>
+                  {fixture.homeTeam} vs {fixture.awayTeam}
+                </Text>
+
+                <Text style={styles.liveMatchText}>{fixture.leagueName}</Text>
+                <Text style={styles.liveMatchText}>
+                  Inicio: {fixture.startingAt}
+                </Text>
+                <Text style={styles.liveMatchText}>
+                  Estado: {fixture.status}
+                </Text>
+              </View>
+            ))
+          )}
+        </View>
+
         <View style={styles.infoCard}>
           <Text style={styles.infoTitle}>Siguiente paso</Text>
           <Text style={styles.infoText}>
-            Después haremos una función para traer partidos por fecha o por liga
-            y convertirlos al formato interno de la app.
+            Después convertiremos estos partidos reales al formato interno de la
+            app para poder mostrarlos como MatchCard.
           </Text>
         </View>
       </ScrollView>
@@ -181,6 +256,13 @@ const styles = StyleSheet.create({
     marginBottom: 4,
   },
   liveMatchText: {
+    fontSize: 13,
+    lineHeight: 18,
+    fontWeight: '600',
+    color: '#6B7280',
+  },
+  noFixturesText: {
+    marginTop: 12,
     fontSize: 13,
     lineHeight: 18,
     fontWeight: '600',
