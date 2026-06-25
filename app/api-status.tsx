@@ -3,20 +3,25 @@ import { useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import { MatchCard } from '@/components/MatchCard';
 import { ScreenHeader } from '@/components/ScreenHeader';
 import {
+  getFootballDataTodayAppMatches,
   getFootballDataTodayMatches,
   testFootballApiConnection,
   type FootballDataMatchSummary,
 } from '@/services/footballApiService';
+import type { Match } from '@/types/match';
 
 export default function ApiStatusScreen() {
   const [statusMessage, setStatusMessage] = useState(
     'Presiona el botón para revisar la configuración.'
   );
   const [matches, setMatches] = useState<FootballDataMatchSummary[]>([]);
+  const [appMatches, setAppMatches] = useState<Match[]>([]);
   const [isChecking, setIsChecking] = useState(false);
   const [isLoadingMatches, setIsLoadingMatches] = useState(false);
+  const [isLoadingAppMatches, setIsLoadingAppMatches] = useState(false);
 
   async function handleCheckApi() {
     setIsChecking(true);
@@ -48,6 +53,29 @@ export default function ApiStatusScreen() {
     }
 
     setIsLoadingMatches(false);
+  }
+
+  async function handleLoadAppMatches() {
+    setIsLoadingAppMatches(true);
+
+    try {
+      const loadedAppMatches = await getFootballDataTodayAppMatches();
+      setAppMatches(loadedAppMatches);
+
+      setStatusMessage(
+        `Partidos convertidos al formato interno de la app: ${loadedAppMatches.length}.`
+      );
+    } catch (error) {
+      const errorMessage =
+        error instanceof Error
+          ? error.message
+          : 'No se pudieron convertir los partidos.';
+
+      setAppMatches([]);
+      setStatusMessage(errorMessage);
+    }
+
+    setIsLoadingAppMatches(false);
   }
 
   return (
@@ -103,7 +131,9 @@ export default function ApiStatusScreen() {
             disabled={isLoadingMatches}
           >
             <Text style={styles.checkButtonText}>
-              {isLoadingMatches ? 'Cargando partidos...' : 'Cargar partidos de hoy'}
+              {isLoadingMatches
+                ? 'Cargando partidos...'
+                : 'Cargar partidos de hoy'}
             </Text>
           </Pressable>
 
@@ -127,11 +157,48 @@ export default function ApiStatusScreen() {
           )}
         </View>
 
+        <View style={styles.card}>
+          <Text style={styles.cardTitle}>Formato interno de la app</Text>
+
+          <Text style={styles.cardText}>
+            Convierte los partidos reales al tipo Match para mostrarlos con el
+            mismo diseño de tus tarjetas.
+          </Text>
+
+          <Pressable
+            style={({ pressed }) => [
+              styles.checkButton,
+              pressed && styles.buttonPressed,
+              isLoadingAppMatches && styles.disabledButton,
+            ]}
+            onPress={handleLoadAppMatches}
+            disabled={isLoadingAppMatches}
+          >
+            <Text style={styles.checkButtonText}>
+              {isLoadingAppMatches
+                ? 'Convirtiendo partidos...'
+                : 'Probar MatchCard real'}
+            </Text>
+          </Pressable>
+
+          {appMatches.length === 0 ? (
+            <Text style={styles.noMatchesText}>
+              Todavía no se cargaron partidos en formato interno.
+            </Text>
+          ) : (
+            appMatches.slice(0, 5).map((match) => (
+              <View key={match.id} style={styles.appMatchWrapper}>
+                <MatchCard match={match} />
+              </View>
+            ))
+          )}
+        </View>
+
         <View style={styles.infoCard}>
           <Text style={styles.infoTitle}>Siguiente paso</Text>
           <Text style={styles.infoText}>
-            Después convertiremos estos partidos reales al formato interno de la
-            app para poder mostrarlos con tu MatchCard sin cambiar el diseño.
+            Si estas tarjetas se ven bien, después conectaremos esta función a la
+            pantalla principal de Partidos.
           </Text>
         </View>
       </ScrollView>
@@ -225,6 +292,9 @@ const styles = StyleSheet.create({
     lineHeight: 18,
     fontWeight: '600',
     color: '#6B7280',
+  },
+  appMatchWrapper: {
+    marginTop: 12,
   },
   infoCard: {
     backgroundColor: '#EFF6FF',
