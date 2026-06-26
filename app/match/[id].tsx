@@ -2,6 +2,7 @@ import { router, useLocalSearchParams } from 'expo-router';
 import { useEffect, useState } from 'react';
 import {
   Alert,
+  Image,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -33,6 +34,28 @@ function getLocationText(match: Match) {
 
 function hasRealLocation(match: Match) {
   return getLocationText(match).length > 0;
+}
+
+function TeamNameWithFlag({
+  teamName,
+  flagUrl,
+}: {
+  teamName: string;
+  flagUrl?: string;
+}) {
+  return (
+    <View style={styles.teamBox}>
+      {flagUrl ? (
+        <Image source={{ uri: flagUrl }} style={styles.flag} />
+      ) : (
+        <View style={styles.flagPlaceholder} />
+      )}
+
+      <Text style={styles.teamName} numberOfLines={2}>
+        {teamName}
+      </Text>
+    </View>
+  );
 }
 
 export default function MatchDetailScreen() {
@@ -191,9 +214,17 @@ export default function MatchDetailScreen() {
           </View>
 
           <View style={styles.teamsBox}>
-            <Text style={styles.teamName}>{currentMatch.homeTeam}</Text>
+            <TeamNameWithFlag
+              teamName={currentMatch.homeTeam}
+              flagUrl={currentMatch.homeTeamFlag}
+            />
+
             <Text style={styles.vsText}>vs</Text>
-            <Text style={styles.teamName}>{currentMatch.awayTeam}</Text>
+
+            <TeamNameWithFlag
+              teamName={currentMatch.awayTeam}
+              flagUrl={currentMatch.awayTeamFlag}
+            />
           </View>
 
           {currentMatch.actualHomeScore !== undefined &&
@@ -312,8 +343,25 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     gap: 10,
   },
-  teamName: {
+  teamBox: {
     flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+  },
+  flag: {
+    width: 42,
+    height: 30,
+    borderRadius: 5,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+    backgroundColor: '#F9FAFB',
+  },
+  flagPlaceholder: {
+    width: 42,
+    height: 30,
+  },
+  teamName: {
     fontSize: 18,
     fontWeight: '900',
     color: '#111827',
