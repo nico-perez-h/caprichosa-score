@@ -1,4 +1,4 @@
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Image, Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { StatusBadge } from '@/components/StatusBadge';
 import type { Match } from '@/types/match';
@@ -42,6 +42,28 @@ function getLocationText(match: Match) {
   return locationParts.join(' · ');
 }
 
+function TeamNameWithFlag({
+  teamName,
+  flagUrl,
+}: {
+  teamName: string;
+  flagUrl?: string;
+}) {
+  return (
+    <View style={styles.teamBox}>
+      {flagUrl ? (
+        <Image source={{ uri: flagUrl }} style={styles.flag} />
+      ) : (
+        <View style={styles.flagPlaceholder} />
+      )}
+
+      <Text style={styles.team} numberOfLines={2}>
+        {teamName}
+      </Text>
+    </View>
+  );
+}
+
 export function MatchCard({
   match,
   savedPrediction,
@@ -77,9 +99,17 @@ export function MatchCard({
       </View>
 
       <View style={styles.matchRow}>
-        <Text style={styles.team}>{match.homeTeam}</Text>
+        <TeamNameWithFlag
+          teamName={match.homeTeam}
+          flagUrl={match.homeTeamFlag}
+        />
+
         <Text style={styles.vs}>vs</Text>
-        <Text style={styles.team}>{match.awayTeam}</Text>
+
+        <TeamNameWithFlag
+          teamName={match.awayTeam}
+          flagUrl={match.awayTeamFlag}
+        />
       </View>
 
       {hasFinalScore ? (
@@ -160,8 +190,25 @@ const styles = StyleSheet.create({
     gap: 10,
     marginBottom: 16,
   },
-  team: {
+  teamBox: {
     flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+  },
+  flag: {
+    width: 34,
+    height: 24,
+    borderRadius: 4,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+    backgroundColor: '#F9FAFB',
+  },
+  flagPlaceholder: {
+    width: 34,
+    height: 24,
+  },
+  team: {
     fontSize: 18,
     fontWeight: '900',
     color: '#111827',

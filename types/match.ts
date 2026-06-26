@@ -5,6 +5,10 @@ export type Match = {
   tournamentId: string;
   homeTeam: string;
   awayTeam: string;
+  homeTeamFlag?: string;
+  awayTeamFlag?: string;
+  homeTeamCode?: string;
+  awayTeamCode?: string;
   date: string;
   kickoffTime: string;
   tournament: string;

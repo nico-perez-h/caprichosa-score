@@ -27,6 +27,15 @@ type WorldCup2026Stadium = {
   country_en?: string;
 };
 
+type WorldCup2026Team = {
+  id?: string;
+  name_en?: string;
+  flag?: string;
+  fifa_code?: string;
+  iso2?: string;
+  group?: string;
+};
+
 function buildWorldCupApiUrl(path: string) {
   return new URL(`${footballApiConfig.baseUrl}${path}`);
 }
@@ -132,6 +141,10 @@ function getTeamName(game: any, side: 'home' | 'away') {
   return teamName ?? teamLabel ?? (side === 'home' ? 'Local' : 'Visitante');
 }
 
+function getTeamId(game: any, side: 'home' | 'away') {
+  return game?.[`${side}_team_id`];
+}
+
 function getStageName(game: any) {
   const type = String(game?.type ?? '').toLowerCase();
 
@@ -149,15 +162,37 @@ function getStageName(game: any) {
   return game?.group ?? 'Fase no disponible';
 }
 
-function getTournamentIdFromGame(game: any) {
-  return 'world-cup-2026';
-}
-
 function getStadiumById(
   stadiums: WorldCup2026Stadium[],
   stadiumId: string | number | undefined
 ) {
   return stadiums.find((stadium) => String(stadium.id) === String(stadiumId));
+}
+
+function getTeamById(
+  teams: WorldCup2026Team[],
+  teamId: string | number | undefined
+) {
+  return teams.find((team) => String(team.id) === String(teamId));
+}
+
+function getTeamByName(teams: WorldCup2026Team[], teamName: string) {
+  const cleanTeamName = teamName.trim().toLowerCase();
+
+  return teams.find(
+    (team) => team.name_en?.trim().toLowerCase() === cleanTeamName
+  );
+}
+
+function getTeamData(
+  teams: WorldCup2026Team[],
+  game: any,
+  side: 'home' | 'away'
+) {
+  const teamId = getTeamId(game, side);
+  const teamName = getTeamName(game, side);
+
+  return getTeamById(teams, teamId) ?? getTeamByName(teams, teamName);
 }
 
 function mapWorldCupGameToSummary(game: any): WorldCup2026MatchSummary {
@@ -171,20 +206,31 @@ function mapWorldCupGameToSummary(game: any): WorldCup2026MatchSummary {
   };
 }
 
-function mapWorldCupGameToAppMatch(
-  game: any,
-  stadiums: WorldCup2026Stadium[]
-): Match {
+function mapWorldCupGameToAppMatch({
+  game,
+  stadiums,
+  teams,
+}: {
+  game: any;
+  stadiums: WorldCup2026Stadium[];
+  teams: WorldCup2026Team[];
+}): Match {
   const stadium = getStadiumById(stadiums, game?.stadium_id);
+  const homeTeam = getTeamData(teams, game, 'home');
+  const awayTeam = getTeamData(teams, game, 'away');
   const status = mapWorldCupStatusToMatchStatus(game);
   const actualHomeScore = getScoreValue(game?.home_score);
   const actualAwayScore = getScoreValue(game?.away_score);
 
   return {
     id: String(game?.id ?? ''),
-    tournamentId: getTournamentIdFromGame(game),
+    tournamentId: 'world-cup-2026',
     homeTeam: getTeamName(game, 'home'),
     awayTeam: getTeamName(game, 'away'),
+    homeTeamFlag: homeTeam?.flag,
+    awayTeamFlag: awayTeam?.flag,
+    homeTeamCode: homeTeam?.fifa_code,
+    awayTeamCode: awayTeam?.fifa_code,
     date: formatWorldCupDate(game?.local_date),
     kickoffTime: formatWorldCupTime(game?.local_date),
     tournament: 'Mundial 2026',
@@ -241,6 +287,20 @@ export async function getWorldCup2026Stadiums(): Promise<WorldCup2026Stadium[]> 
   return [];
 }
 
+export async function getWorldCup2026Teams(): Promise<WorldCup2026Team[]> {
+  const data = await fetchWorldCupApi('/get/teams');
+
+  if (Array.isArray(data?.teams)) {
+    return data.teams;
+  }
+
+  if (Array.isArray(data)) {
+    return data;
+  }
+
+  return [];
+}
+
 export async function getWorldCup2026MatchSummaries() {
   const games = await getWorldCup2026Games();
 
@@ -252,12 +312,19 @@ export async function getFootballDataTodayMatches() {
 }
 
 export async function getFootballDataTodayAppMatches(): Promise<Match[]> {
-  const [games, stadiums] = await Promise.all([
+  const [games, stadiums, teams] = await Promise.all([
     getWorldCup2026Games(),
     getWorldCup2026Stadiums(),
+    getWorldCup2026Teams(),
   ]);
 
-  return games.map((game: any) => mapWorldCupGameToAppMatch(game, stadiums));
+  return games.map((game: any) =>
+    mapWorldCupGameToAppMatch({
+      game,
+      stadiums,
+      teams,
+    })
+  );
 }
 
 export async function testFootballApiConnection(): Promise<FootballApiResult> {
