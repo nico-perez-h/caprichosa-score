@@ -17,6 +17,7 @@ export default function RootLayout() {
           <Stack.Screen name="join-group" />
           <Stack.Screen name="create-group" />
           <Stack.Screen name="api-status" />
+          <Stack.Screen name="results" />
         </Stack>
 
         <StatusBar style="light" />
