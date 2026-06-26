@@ -16,6 +16,50 @@ type PredictionSection = {
   data: Match[];
 };
 
+function parseMatchDate(match: Match) {
+  const [day, month, year] = match.date.split('/');
+  const [hour, minute] = match.kickoffTime.split(':');
+
+  return new Date(
+    Number(year),
+    Number(month) - 1,
+    Number(day),
+    Number(hour),
+    Number(minute)
+  ).getTime();
+}
+
+function sortMatchesByDate(matches: Match[]) {
+  return [...matches].sort((firstMatch, secondMatch) => {
+    return parseMatchDate(firstMatch) - parseMatchDate(secondMatch);
+  });
+}
+
+function isPlaceholderTeam(teamName: string) {
+  const cleanTeamName = teamName.trim().toLowerCase();
+
+  return (
+    cleanTeamName.includes('tbd') ||
+    cleanTeamName.includes('por definir') ||
+    cleanTeamName.includes('winner') ||
+    cleanTeamName.includes('ganador') ||
+    cleanTeamName.includes('1st group') ||
+    cleanTeamName.includes('2nd group') ||
+    cleanTeamName.includes('3rd group') ||
+    cleanTeamName.includes('local') ||
+    cleanTeamName.includes('visitante')
+  );
+}
+
+function isConfirmedMatch(match: Match) {
+  return (
+    !isPlaceholderTeam(match.homeTeam) &&
+    !isPlaceholderTeam(match.awayTeam) &&
+    match.homeTeam.trim().length > 0 &&
+    match.awayTeam.trim().length > 0
+  );
+}
+
 export default function PredictionsScreen() {
   const { predictions, getPrediction } = usePredictions();
 
@@ -39,14 +83,25 @@ export default function PredictionsScreen() {
     Boolean(predictions[match.id])
   );
 
-  const pendingPredictedMatches = predictedMatches.filter(
-    (match) =>
-      match.actualHomeScore === undefined || match.actualAwayScore === undefined
+  const availableMatchesWithoutPrediction = sortMatchesByDate(
+    allMatches.filter(
+      (match) =>
+        match.status === 'Por jugar' &&
+        isConfirmedMatch(match) &&
+        !predictions[match.id]
+    )
   );
 
-  const finishedPredictedMatches = predictedMatches.filter(
-    (match) =>
-      match.actualHomeScore !== undefined && match.actualAwayScore !== undefined
+  const pendingPredictedMatches = sortMatchesByDate(
+    predictedMatches.filter((match) => match.status === 'Por jugar')
+  );
+
+  const finishedPredictedMatches = sortMatchesByDate(
+    predictedMatches.filter(
+      (match) =>
+        match.actualHomeScore !== undefined &&
+        match.actualAwayScore !== undefined
+    )
   );
 
   const totalPoints = calculateTotalPredictionPoints(allMatches, predictions);
@@ -54,8 +109,14 @@ export default function PredictionsScreen() {
 
   const sections: PredictionSection[] = [
     {
+      title: 'Por hacer',
+      description:
+        'Partidos confirmados donde todavía puedes guardar una predicción.',
+      data: availableMatchesWithoutPrediction,
+    },
+    {
       title: 'Pendientes',
-      description: 'Predicciones que todavía esperan resultado final.',
+      description: 'Predicciones guardadas que todavía esperan resultado final.',
       data: pendingPredictedMatches,
     },
     {
@@ -77,7 +138,7 @@ export default function PredictionsScreen() {
           <>
             <ScreenHeader
               title="Predicciones"
-              subtitle="Revisa tus predicciones pendientes y las que ya sumaron puntos."
+              subtitle="Guarda nuevas predicciones y revisa las que ya hiciste."
             />
 
             <View style={styles.summaryCard}>
@@ -97,9 +158,9 @@ export default function PredictionsScreen() {
 
               <View style={styles.summaryItem}>
                 <Text style={styles.summaryValue}>
-                  {pendingPredictedMatches.length}
+                  {availableMatchesWithoutPrediction.length}
                 </Text>
-                <Text style={styles.summaryLabel}>Pendientes</Text>
+                <Text style={styles.summaryLabel}>Por hacer</Text>
               </View>
             </View>
 
@@ -126,13 +187,13 @@ export default function PredictionsScreen() {
             <Text style={styles.emptyTitle}>
               {isLoadingMatches
                 ? 'Cargando predicciones...'
-                : 'Aún no tienes predicciones'}
+                : 'No hay predicciones pendientes'}
             </Text>
 
             <Text style={styles.emptyText}>
               {isLoadingMatches
                 ? 'Estamos revisando tus partidos y predicciones guardadas.'
-                : 'Entra a un partido por jugar y guarda tu primera predicción.'}
+                : 'Cuando haya partidos confirmados disponibles, aparecerán aquí.'}
             </Text>
           </View>
         }
