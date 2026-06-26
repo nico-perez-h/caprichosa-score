@@ -1,12 +1,14 @@
 import { router } from 'expo-router';
+import { useEffect, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import { ScreenHeader } from '@/components/ScreenHeader';
-import { matches } from '@/data/matches';
 import {
   mockRankingPlayers,
   type RankingPlayer,
 } from '@/data/mockRankingPlayers';
+import { getMatches } from '@/services/matchesService';
+import type { Match } from '@/types/match';
 import { usePredictions } from '../../contexts/PredictionsContext';
 import { useUserProfile } from '../../contexts/UserProfileContext';
 import { calculatePredictionStats } from '../../utils/predictionStats';
@@ -23,7 +25,23 @@ export default function RankingScreen() {
   const { predictions } = usePredictions();
   const { playerName } = useUserProfile();
 
-  const stats = calculatePredictionStats(matches, predictions);
+  const [allMatches, setAllMatches] = useState<Match[]>([]);
+  const [isLoadingMatches, setIsLoadingMatches] = useState(true);
+
+  useEffect(() => {
+    async function loadMatches() {
+      setIsLoadingMatches(true);
+
+      const loadedMatches = await getMatches();
+
+      setAllMatches(loadedMatches);
+      setIsLoadingMatches(false);
+    }
+
+    loadMatches();
+  }, []);
+
+  const stats = calculatePredictionStats(allMatches, predictions);
 
   const currentUserPlayer: RankingPlayer = {
     id: 'current-user',
@@ -80,7 +98,9 @@ export default function RankingScreen() {
         </View>
 
         <View style={styles.pointsBox}>
-          <Text style={styles.pointsText}>{stats.totalPoints}</Text>
+          <Text style={styles.pointsText}>
+            {isLoadingMatches ? '...' : stats.totalPoints}
+          </Text>
           <Text style={styles.pointsLabel}>pts</Text>
         </View>
       </View>
@@ -97,22 +117,30 @@ export default function RankingScreen() {
 
       <View style={styles.statsGrid}>
         <View style={styles.statCard}>
-          <Text style={styles.statValue}>{stats.totalPredictions}</Text>
+          <Text style={styles.statValue}>
+            {isLoadingMatches ? '...' : stats.totalPredictions}
+          </Text>
           <Text style={styles.statLabel}>Predicciones</Text>
         </View>
 
         <View style={styles.statCard}>
-          <Text style={styles.statValue}>{stats.pendingPredictions}</Text>
+          <Text style={styles.statValue}>
+            {isLoadingMatches ? '...' : stats.pendingPredictions}
+          </Text>
           <Text style={styles.statLabel}>Pendientes</Text>
         </View>
 
         <View style={styles.statCard}>
-          <Text style={styles.statValue}>{stats.finishedPredictions}</Text>
+          <Text style={styles.statValue}>
+            {isLoadingMatches ? '...' : stats.finishedPredictions}
+          </Text>
           <Text style={styles.statLabel}>Finalizadas</Text>
         </View>
 
         <View style={styles.statCard}>
-          <Text style={styles.statValue}>{stats.accuracy}%</Text>
+          <Text style={styles.statValue}>
+            {isLoadingMatches ? '...' : `${stats.accuracy}%`}
+          </Text>
           <Text style={styles.statLabel}>Efectividad</Text>
         </View>
       </View>
@@ -191,8 +219,9 @@ export default function RankingScreen() {
       <View style={styles.previewCard}>
         <Text style={styles.previewTitle}>Ranking de prueba</Text>
         <Text style={styles.previewText}>
-          Estos jugadores todavía son simulados. Cuando conectemos usuarios,
-          grupos y Supabase, esta tabla se llenará con personas reales.
+          Estos jugadores todavía son simulados. Tus puntos ya se calculan con
+          tus predicciones reales, pero los demás jugadores se conectarán cuando
+          agreguemos usuarios, grupos y Supabase.
         </Text>
       </View>
     </ScrollView>
