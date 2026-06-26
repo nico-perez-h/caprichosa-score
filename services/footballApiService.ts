@@ -10,181 +10,254 @@ type FootballApiResult = {
   matchesCount?: number;
 };
 
-export type FootballDataMatchSummary = {
+export type WorldCup2026MatchSummary = {
   id: string;
   homeTeam: string;
   awayTeam: string;
-  competitionName: string;
+  group: string;
   startingAt: string;
   status: string;
 };
 
-function buildFootballDataUrl(path: string) {
+type WorldCup2026Stadium = {
+  id?: string;
+  name_en?: string;
+  fifa_name?: string;
+  city_en?: string;
+  country_en?: string;
+};
+
+function buildWorldCupApiUrl(path: string) {
   return new URL(`${footballApiConfig.baseUrl}${path}`);
 }
 
-function formatFootballDataStatus(status: string) {
-  if (status === 'IN_PLAY' || status === 'PAUSED') return 'En vivo';
-  if (status === 'TIMED' || status === 'SCHEDULED') return 'Por jugar';
-  if (status === 'FINISHED') return 'Finalizado';
-  if (status === 'POSTPONED') return 'Postergado';
-  if (status === 'CANCELLED') return 'Cancelado';
+function normalizeBoolean(value: unknown) {
+  if (typeof value === 'boolean') return value;
 
-  return status || 'Estado no disponible';
+  if (typeof value === 'string') {
+    return value.toLowerCase() === 'true';
+  }
+
+  return false;
 }
 
-function mapFootballDataStatusToMatchStatus(status: string): MatchStatus {
-  if (status === 'IN_PLAY' || status === 'PAUSED') return 'En vivo';
-  if (status === 'FINISHED') return 'Finalizado';
+function getScoreValue(value: unknown) {
+  if (typeof value === 'number') return value;
+
+  if (typeof value === 'string') {
+    const parsedValue = Number(value);
+
+    if (!Number.isNaN(parsedValue)) {
+      return parsedValue;
+    }
+  }
+
+  return undefined;
+}
+
+function mapWorldCupStatusToMatchStatus(game: any): MatchStatus {
+  const isFinished = normalizeBoolean(game?.finished);
+  const timeElapsed = String(game?.time_elapsed ?? '').toLowerCase();
+
+  if (isFinished) return 'Finalizado';
+
+  if (
+    timeElapsed &&
+    timeElapsed !== 'notstarted' &&
+    timeElapsed !== 'not started'
+  ) {
+    return 'En vivo';
+  }
 
   return 'Por jugar';
 }
 
-function formatFootballDataDate(utcDate: string) {
-  if (!utcDate) return 'Fecha no disponible';
+function formatWorldCupStatus(game: any) {
+  const matchStatus = mapWorldCupStatusToMatchStatus(game);
 
-  const date = new Date(utcDate);
-
-  if (Number.isNaN(date.getTime())) {
-    return 'Fecha no disponible';
-  }
-
-  return new Intl.DateTimeFormat('es-BO', {
-    day: '2-digit',
-    month: '2-digit',
-    year: 'numeric',
-  }).format(date);
+  if (matchStatus === 'Por jugar') return 'Por jugar';
+  if (matchStatus === 'En vivo') return 'En vivo';
+  return 'Finalizado';
 }
 
-function formatFootballDataTime(utcDate: string) {
-  if (!utcDate) return 'Hora no disponible';
+function parseWorldCupDate(localDate: string) {
+  if (!localDate) return null;
 
-  const date = new Date(utcDate);
+  const [datePart, timePart] = localDate.split(' ');
 
-  if (Number.isNaN(date.getTime())) {
-    return 'Hora no disponible';
-  }
+  if (!datePart || !timePart) return null;
 
-  return new Intl.DateTimeFormat('es-BO', {
-    hour: '2-digit',
-    minute: '2-digit',
-    hour12: false,
-  }).format(date);
-}
+  const [month, day, year] = datePart.split('/');
+  const [hour, minute] = timePart.split(':');
 
-function formatFootballDataDateTime(utcDate: string) {
-  if (!utcDate) return 'Fecha no disponible';
+  if (!month || !day || !year || !hour || !minute) return null;
 
-  const date = new Date(utcDate);
-
-  if (Number.isNaN(date.getTime())) {
-    return 'Fecha no disponible';
-  }
-
-  return new Intl.DateTimeFormat('es-BO', {
-    day: '2-digit',
-    month: '2-digit',
-    year: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
-    hour12: false,
-  }).format(date);
-}
-
-function getScoreValue(value: unknown) {
-  return typeof value === 'number' ? value : undefined;
-}
-
-function getTournamentIdFromCompetition(competitionName: string) {
-  const normalizedCompetitionName = competitionName.toLowerCase();
-
-  if (normalizedCompetitionName.includes('world cup')) {
-    return 'world-cup-2026';
-  }
-
-  if (normalizedCompetitionName.includes('champions league')) {
-    return 'champions-league';
-  }
-
-  if (normalizedCompetitionName.includes('premier league')) {
-    return 'premier-league';
-  }
-
-  if (normalizedCompetitionName.includes('libertadores')) {
-    return 'libertadores';
-  }
-
-  return 'football-data';
-}
-
-function mapFootballDataMatch(match: any): FootballDataMatchSummary {
   return {
-    id: String(match?.id ?? ''),
-    homeTeam: match?.homeTeam?.name ?? 'Local',
-    awayTeam: match?.awayTeam?.name ?? 'Visitante',
-    competitionName: match?.competition?.name ?? 'Competición no disponible',
-    startingAt: formatFootballDataDateTime(match?.utcDate),
-    status: formatFootballDataStatus(match?.status),
+    day: day.padStart(2, '0'),
+    month: month.padStart(2, '0'),
+    year,
+    hour: hour.padStart(2, '0'),
+    minute: minute.padStart(2, '0'),
   };
 }
 
-function mapFootballDataMatchToAppMatch(match: any): Match {
-  const competitionName =
-    match?.competition?.name ?? 'Competición no disponible';
+function formatWorldCupDate(localDate: string) {
+  const parsedDate = parseWorldCupDate(localDate);
 
-  const actualHomeScore = getScoreValue(match?.score?.fullTime?.home);
-  const actualAwayScore = getScoreValue(match?.score?.fullTime?.away);
+  if (!parsedDate) return 'Fecha no disponible';
 
+  return `${parsedDate.day}/${parsedDate.month}/${parsedDate.year}`;
+}
+
+function formatWorldCupTime(localDate: string) {
+  const parsedDate = parseWorldCupDate(localDate);
+
+  if (!parsedDate) return 'Hora no disponible';
+
+  return `${parsedDate.hour}:${parsedDate.minute}`;
+}
+
+function formatWorldCupDateTime(localDate: string) {
+  const parsedDate = parseWorldCupDate(localDate);
+
+  if (!parsedDate) return 'Fecha no disponible';
+
+  return `${parsedDate.day}/${parsedDate.month}/${parsedDate.year} · ${parsedDate.hour}:${parsedDate.minute}`;
+}
+
+function getTeamName(game: any, side: 'home' | 'away') {
+  const teamName = game?.[`${side}_team_name_en`];
+  const teamLabel = game?.[`${side}_team_label`];
+
+  return teamName ?? teamLabel ?? (side === 'home' ? 'Local' : 'Visitante');
+}
+
+function getStageName(game: any) {
+  const type = String(game?.type ?? '').toLowerCase();
+
+  if (type === 'group') {
+    return game?.group ? `Grupo ${game.group}` : 'Fase de grupos';
+  }
+
+  if (type === 'r32') return 'Dieciseisavos';
+  if (type === 'r16') return 'Octavos de final';
+  if (type === 'qf') return 'Cuartos de final';
+  if (type === 'sf') return 'Semifinal';
+  if (type === 'third') return 'Tercer lugar';
+  if (type === 'final') return 'Final';
+
+  return game?.group ?? 'Fase no disponible';
+}
+
+function getTournamentIdFromGame(game: any) {
+  return 'world-cup-2026';
+}
+
+function getStadiumById(
+  stadiums: WorldCup2026Stadium[],
+  stadiumId: string | number | undefined
+) {
+  return stadiums.find((stadium) => String(stadium.id) === String(stadiumId));
+}
+
+function mapWorldCupGameToSummary(game: any): WorldCup2026MatchSummary {
   return {
-    id: String(match?.id ?? ''),
-    tournamentId: getTournamentIdFromCompetition(competitionName),
-    homeTeam: match?.homeTeam?.name ?? 'Local',
-    awayTeam: match?.awayTeam?.name ?? 'Visitante',
-    date: formatFootballDataDate(match?.utcDate),
-    kickoffTime: formatFootballDataTime(match?.utcDate),
-    tournament: competitionName,
-    group: match?.group ?? match?.stage ?? 'Fase no disponible',
-    stadium: 'Estadio no disponible',
-    city: 'Ciudad no disponible',
-    status: mapFootballDataStatusToMatchStatus(match?.status),
-    actualHomeScore,
-    actualAwayScore,
+    id: String(game?.id ?? ''),
+    homeTeam: getTeamName(game, 'home'),
+    awayTeam: getTeamName(game, 'away'),
+    group: getStageName(game),
+    startingAt: formatWorldCupDateTime(game?.local_date),
+    status: formatWorldCupStatus(game),
   };
 }
 
-async function fetchFootballData(path: string) {
-  const url = buildFootballDataUrl(path);
+function mapWorldCupGameToAppMatch(
+  game: any,
+  stadiums: WorldCup2026Stadium[]
+): Match {
+  const stadium = getStadiumById(stadiums, game?.stadium_id);
+  const status = mapWorldCupStatusToMatchStatus(game);
+  const actualHomeScore = getScoreValue(game?.home_score);
+  const actualAwayScore = getScoreValue(game?.away_score);
 
-  const response = await fetch(url.toString(), {
-    headers: {
-      'X-Auth-Token': footballApiConfig.apiKey,
-    },
-  });
+  return {
+    id: String(game?.id ?? ''),
+    tournamentId: getTournamentIdFromGame(game),
+    homeTeam: getTeamName(game, 'home'),
+    awayTeam: getTeamName(game, 'away'),
+    date: formatWorldCupDate(game?.local_date),
+    kickoffTime: formatWorldCupTime(game?.local_date),
+    tournament: 'Mundial 2026',
+    group: getStageName(game),
+    stadium: stadium?.fifa_name ?? stadium?.name_en ?? 'Estadio no disponible',
+    city: stadium?.city_en ?? 'Ciudad no disponible',
+    status,
+    actualHomeScore: status === 'Finalizado' ? actualHomeScore : undefined,
+    actualAwayScore: status === 'Finalizado' ? actualAwayScore : undefined,
+  };
+}
 
+async function fetchWorldCupApi(path: string) {
+  const url = buildWorldCupApiUrl(path);
+
+  const response = await fetch(url.toString());
   const data = await response.json();
 
   if (!response.ok) {
     throw new Error(
       data?.message ??
-        `Football-Data respondió con error ${response.status}. Revisa tu token o tu plan.`
+        `WorldCup2026 API respondió con error ${response.status}.`
     );
   }
 
   return data;
 }
 
-export async function getFootballDataTodayMatches() {
-  const data = await fetchFootballData('/matches');
-  const matches = Array.isArray(data?.matches) ? data.matches : [];
+export async function getWorldCup2026Games() {
+  const data = await fetchWorldCupApi('/get/games');
 
-  return matches.map(mapFootballDataMatch);
+  if (Array.isArray(data?.games)) {
+    return data.games;
+  }
+
+  if (Array.isArray(data)) {
+    return data;
+  }
+
+  return [];
+}
+
+export async function getWorldCup2026Stadiums(): Promise<WorldCup2026Stadium[]> {
+  const data = await fetchWorldCupApi('/get/stadiums');
+
+  if (Array.isArray(data?.stadiums)) {
+    return data.stadiums;
+  }
+
+  if (Array.isArray(data)) {
+    return data;
+  }
+
+  return [];
+}
+
+export async function getWorldCup2026MatchSummaries() {
+  const games = await getWorldCup2026Games();
+
+  return games.map(mapWorldCupGameToSummary);
+}
+
+export async function getFootballDataTodayMatches() {
+  return getWorldCup2026MatchSummaries();
 }
 
 export async function getFootballDataTodayAppMatches(): Promise<Match[]> {
-  const data = await fetchFootballData('/matches');
-  const matches = Array.isArray(data?.matches) ? data.matches : [];
+  const [games, stadiums] = await Promise.all([
+    getWorldCup2026Games(),
+    getWorldCup2026Stadiums(),
+  ]);
 
-  return matches.map(mapFootballDataMatchToAppMatch);
+  return games.map((game: any) => mapWorldCupGameToAppMatch(game, stadiums));
 }
 
 export async function testFootballApiConnection(): Promise<FootballApiResult> {
@@ -192,23 +265,23 @@ export async function testFootballApiConnection(): Promise<FootballApiResult> {
     return {
       ok: false,
       message:
-        'La API de fútbol todavía no está configurada. Falta agregar la URL base y la API key.',
+        'La API de fútbol todavía no está configurada. Falta agregar la URL base.',
     };
   }
 
   try {
-    const matches = await getFootballDataTodayMatches();
+    const games = await getWorldCup2026Games();
 
     return {
       ok: true,
-      matchesCount: matches.length,
-      message: `Conexión real exitosa con ${footballApiConfig.provider}. Partidos encontrados hoy: ${matches.length}.`,
+      matchesCount: games.length,
+      message: `Conexión real exitosa con ${footballApiConfig.provider}. Partidos encontrados: ${games.length}.`,
     };
   } catch (error) {
     const errorMessage =
       error instanceof Error
         ? error.message
-        : 'No se pudo conectar con Football-Data.org.';
+        : 'No se pudo conectar con WorldCup2026 API.';
 
     return {
       ok: false,

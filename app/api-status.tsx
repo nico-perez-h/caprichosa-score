@@ -9,15 +9,15 @@ import {
   getFootballDataTodayAppMatches,
   getFootballDataTodayMatches,
   testFootballApiConnection,
-  type FootballDataMatchSummary,
+  type WorldCup2026MatchSummary,
 } from '@/services/footballApiService';
 import type { Match } from '@/types/match';
 
 export default function ApiStatusScreen() {
   const [statusMessage, setStatusMessage] = useState(
-    'Presiona el botón para revisar la configuración.'
+    'Presiona el botón para revisar la conexión.'
   );
-  const [matches, setMatches] = useState<FootballDataMatchSummary[]>([]);
+  const [matches, setMatches] = useState<WorldCup2026MatchSummary[]>([]);
   const [appMatches, setAppMatches] = useState<Match[]>([]);
   const [isChecking, setIsChecking] = useState(false);
   const [isLoadingMatches, setIsLoadingMatches] = useState(false);
@@ -32,7 +32,7 @@ export default function ApiStatusScreen() {
     setIsChecking(false);
   }
 
-  async function handleLoadTodayMatches() {
+  async function handleLoadWorldCupMatches() {
     setIsLoadingMatches(true);
 
     try {
@@ -40,13 +40,13 @@ export default function ApiStatusScreen() {
       setMatches(loadedMatches);
 
       setStatusMessage(
-        `Partidos cargados desde Football-Data.org: ${loadedMatches.length}.`
+        `Partidos cargados desde WorldCup2026 API: ${loadedMatches.length}.`
       );
     } catch (error) {
       const errorMessage =
         error instanceof Error
           ? error.message
-          : 'No se pudieron cargar los partidos.';
+          : 'No se pudieron cargar los partidos del Mundial.';
 
       setMatches([]);
       setStatusMessage(errorMessage);
@@ -91,11 +91,11 @@ export default function ApiStatusScreen() {
 
         <ScreenHeader
           title="Estado de API"
-          subtitle="Revisa si la configuración de Football-Data.org está lista."
+          subtitle="Revisa si la conexión con WorldCup2026 API está funcionando."
         />
 
         <View style={styles.card}>
-          <Text style={styles.cardTitle}>API de fútbol</Text>
+          <Text style={styles.cardTitle}>API del Mundial 2026</Text>
 
           <Text style={styles.cardText}>{statusMessage}</Text>
 
@@ -109,16 +109,17 @@ export default function ApiStatusScreen() {
             disabled={isChecking}
           >
             <Text style={styles.checkButtonText}>
-              {isChecking ? 'Revisando...' : 'Revisar configuración'}
+              {isChecking ? 'Revisando...' : 'Revisar conexión'}
             </Text>
           </Pressable>
         </View>
 
         <View style={styles.card}>
-          <Text style={styles.cardTitle}>Partidos de hoy</Text>
+          <Text style={styles.cardTitle}>Partidos del Mundial</Text>
 
           <Text style={styles.cardText}>
-            Carga partidos reales usando el endpoint de Football-Data.org.
+            Carga los partidos reales del Mundial 2026 usando el endpoint
+            público de WorldCup2026 API.
           </Text>
 
           <Pressable
@@ -127,29 +128,28 @@ export default function ApiStatusScreen() {
               pressed && styles.buttonPressed,
               isLoadingMatches && styles.disabledButton,
             ]}
-            onPress={handleLoadTodayMatches}
+            onPress={handleLoadWorldCupMatches}
             disabled={isLoadingMatches}
           >
             <Text style={styles.checkButtonText}>
               {isLoadingMatches
                 ? 'Cargando partidos...'
-                : 'Cargar partidos de hoy'}
+                : 'Cargar partidos del Mundial'}
             </Text>
           </Pressable>
 
           {matches.length === 0 ? (
             <Text style={styles.noMatchesText}>
-              Todavía no se cargaron partidos o no hay partidos disponibles para
-              hoy.
+              Todavía no se cargaron partidos del Mundial.
             </Text>
           ) : (
-            matches.slice(0, 10).map((match) => (
+            matches.slice(0, 20).map((match) => (
               <View key={match.id} style={styles.matchCard}>
                 <Text style={styles.matchTitle}>
                   {match.homeTeam} vs {match.awayTeam}
                 </Text>
 
-                <Text style={styles.matchText}>{match.competitionName}</Text>
+                <Text style={styles.matchText}>{match.group}</Text>
                 <Text style={styles.matchText}>Inicio: {match.startingAt}</Text>
                 <Text style={styles.matchText}>Estado: {match.status}</Text>
               </View>
@@ -161,8 +161,8 @@ export default function ApiStatusScreen() {
           <Text style={styles.cardTitle}>Formato interno de la app</Text>
 
           <Text style={styles.cardText}>
-            Convierte los partidos reales al tipo Match para mostrarlos con el
-            mismo diseño de tus tarjetas.
+            Convierte los partidos del Mundial al tipo Match para mostrarlos con
+            el mismo diseño de tus tarjetas.
           </Text>
 
           <Pressable
@@ -177,7 +177,7 @@ export default function ApiStatusScreen() {
             <Text style={styles.checkButtonText}>
               {isLoadingAppMatches
                 ? 'Convirtiendo partidos...'
-                : 'Probar MatchCard real'}
+                : 'Probar MatchCard del Mundial'}
             </Text>
           </Pressable>
 
@@ -186,7 +186,7 @@ export default function ApiStatusScreen() {
               Todavía no se cargaron partidos en formato interno.
             </Text>
           ) : (
-            appMatches.slice(0, 5).map((match) => (
+            appMatches.slice(0, 10).map((match) => (
               <View key={match.id} style={styles.appMatchWrapper}>
                 <MatchCard match={match} />
               </View>
@@ -197,8 +197,8 @@ export default function ApiStatusScreen() {
         <View style={styles.infoCard}>
           <Text style={styles.infoTitle}>Siguiente paso</Text>
           <Text style={styles.infoText}>
-            Si estas tarjetas se ven bien, después conectaremos esta función a la
-            pantalla principal de Partidos.
+            Después podemos separar los partidos en pantallas como disponibles,
+            en vivo, finalizados e historial de resultados.
           </Text>
         </View>
       </ScrollView>
