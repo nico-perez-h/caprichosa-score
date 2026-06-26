@@ -8,8 +8,26 @@ function wait(milliseconds: number) {
   });
 }
 
+function getTodayBoliviaDate() {
+  return new Intl.DateTimeFormat('es-BO', {
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+  }).format(new Date());
+}
+
 function getPredictableMatches(matchesList: Match[]) {
   return matchesList.filter((match) => match.status === 'Por jugar');
+}
+
+function getTodayMatchesFromList(matchesList: Match[]) {
+  const today = getTodayBoliviaDate();
+
+  return matchesList.filter((match) => match.date === today);
+}
+
+function getFinishedMatchesFromList(matchesList: Match[]) {
+  return matchesList.filter((match) => match.status === 'Finalizado');
 }
 
 async function getRealMatchesOrNull(): Promise<Match[] | null> {
@@ -42,6 +60,14 @@ export async function getMatches(): Promise<Match[]> {
   return getRealMatchesWithFallback();
 }
 
+export async function getTodayMatches(): Promise<Match[]> {
+  await wait(500);
+
+  const allMatches = await getRealMatchesWithFallback();
+
+  return getTodayMatchesFromList(allMatches);
+}
+
 export async function getPredictableMatchesOnly(): Promise<Match[]> {
   await wait(500);
 
@@ -50,21 +76,36 @@ export async function getPredictableMatchesOnly(): Promise<Match[]> {
   return getPredictableMatches(allMatches);
 }
 
+export async function getTodayPredictableMatchesOnly(): Promise<Match[]> {
+  await wait(500);
+
+  const allMatches = await getRealMatchesWithFallback();
+  const todayMatches = getTodayMatchesFromList(allMatches);
+
+  return getPredictableMatches(todayMatches);
+}
+
+export async function getFinishedMatches(): Promise<Match[]> {
+  await wait(500);
+
+  const allMatches = await getRealMatchesWithFallback();
+
+  return getFinishedMatchesFromList(allMatches);
+}
+
 export async function getMatchesByTournament(
   tournamentId: string
 ): Promise<Match[]> {
   await wait(500);
 
-  const realMatches = await getRealMatchesOrNull();
+  const allMatches = await getRealMatchesWithFallback();
 
-  if (realMatches) {
-    const realTournamentMatches = realMatches.filter(
-      (match) => match.tournamentId === tournamentId
-    );
+  const tournamentMatches = allMatches.filter(
+    (match) => match.tournamentId === tournamentId
+  );
 
-    if (realTournamentMatches.length > 0) {
-      return realTournamentMatches;
-    }
+  if (tournamentMatches.length > 0) {
+    return tournamentMatches;
   }
 
   return matches.filter((match) => match.tournamentId === tournamentId);
@@ -80,22 +121,30 @@ export async function getPredictableMatchesByTournament(
   return getPredictableMatches(tournamentMatches);
 }
 
+export async function getTodayMatchesByTournament(
+  tournamentId: string
+): Promise<Match[]> {
+  await wait(500);
+
+  const tournamentMatches = await getMatchesByTournament(tournamentId);
+
+  return getTodayMatchesFromList(tournamentMatches);
+}
+
 export async function getMatchById(matchId: string): Promise<Match | null> {
   await wait(500);
 
-  const mockMatch = matches.find((match) => match.id === matchId);
-
-  if (mockMatch) {
-    return mockMatch;
-  }
-
   const realMatches = await getRealMatchesOrNull();
 
-  if (!realMatches) {
-    return null;
+  if (realMatches) {
+    const realMatch = realMatches.find((match) => match.id === matchId);
+
+    if (realMatch) {
+      return realMatch;
+    }
   }
 
-  const realMatch = realMatches.find((match) => match.id === matchId);
+  const mockMatch = matches.find((match) => match.id === matchId);
 
-  return realMatch ?? null;
+  return mockMatch ?? null;
 }

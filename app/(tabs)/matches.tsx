@@ -1,31 +1,31 @@
-import { router } from 'expo-router';
-import { useEffect, useState } from 'react';
-import { ScrollView, StyleSheet, Text, View } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { router } from "expo-router";
+import { useEffect, useState } from "react";
+import { ScrollView, StyleSheet, Text, View } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 
-import { MatchCard } from '@/components/MatchCard';
-import { MatchFilters } from '@/components/MatchFilters';
-import { MatchSearchInput } from '@/components/MatchSearchInput';
-import { ScreenHeader } from '@/components/ScreenHeader';
-import type { Prediction } from '../../contexts/PredictionsContext';
-import { usePredictions } from '../../contexts/PredictionsContext';
-import { getMatches } from '@/services/matchesService'
-import type { Match } from '../../types/match';
-import { filterMatches, type MatchFilter } from '../../utils/matchFilters';
+import { MatchCard } from "@/components/MatchCard";
+import { MatchFilters } from "@/components/MatchFilters";
+import { MatchSearchInput } from "@/components/MatchSearchInput";
+import { ScreenHeader } from "@/components/ScreenHeader";
+import type { Prediction } from "../../contexts/PredictionsContext";
+import { usePredictions } from "../../contexts/PredictionsContext";
+import { getTodayMatches } from "../../services/matchesService";
+import type { Match } from "../../types/match";
+import { filterMatches, type MatchFilter } from "../../utils/matchFilters";
 
 export default function MatchesScreen() {
   const { predictions } = usePredictions();
 
   const [allMatches, setAllMatches] = useState<Match[]>([]);
-  const [selectedFilter, setSelectedFilter] = useState<MatchFilter>('all');
-  const [searchTerm, setSearchTerm] = useState('');
+  const [selectedFilter, setSelectedFilter] = useState<MatchFilter>("all");
+  const [searchTerm, setSearchTerm] = useState("");
   const [isLoadingMatches, setIsLoadingMatches] = useState(true);
 
   useEffect(() => {
     async function loadMatches() {
       setIsLoadingMatches(true);
 
-      const loadedMatches = await getMatches();
+      const loadedMatches = await getTodayMatches();
 
       setAllMatches(loadedMatches);
       setIsLoadingMatches(false);
@@ -57,8 +57,8 @@ export default function MatchesScreen() {
         showsVerticalScrollIndicator={false}
       >
         <ScreenHeader
-          title="Partidos disponibles"
-          subtitle="Revisa partidos disponibles de hoy, estados y realiza tus predicciones."
+          title="Partidos"
+          subtitle="Revisa los partidos de hoy, estados y realiza tus predicciones."
         />
 
         <MatchSearchInput
@@ -108,7 +108,7 @@ export default function MatchesScreen() {
 const styles = StyleSheet.create({
   screen: {
     flex: 1,
-    backgroundColor: '#F9FAFB',
+    backgroundColor: "#F9FAFB",
   },
   scroll: {
     flex: 1,
@@ -122,22 +122,22 @@ const styles = StyleSheet.create({
     marginBottom: 14,
   },
   emptyCard: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: "#FFFFFF",
     borderRadius: 20,
     padding: 18,
     borderWidth: 1,
-    borderColor: '#E5E7EB',
+    borderColor: "#E5E7EB",
     marginTop: 8,
   },
   emptyTitle: {
     fontSize: 18,
-    fontWeight: '900',
-    color: '#111827',
+    fontWeight: "900",
+    color: "#111827",
     marginBottom: 8,
   },
   emptyText: {
     fontSize: 14,
     lineHeight: 20,
-    color: '#6B7280',
+    color: "#6B7280",
   },
 });
