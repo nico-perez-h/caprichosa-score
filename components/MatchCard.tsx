@@ -1,8 +1,8 @@
-import { Image, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Image, Pressable, StyleSheet, Text, View } from "react-native";
 
-import { StatusBadge } from '@/components/StatusBadge';
-import type { Match } from '@/types/match';
-import { calculatePredictionPoints } from '@/utils/scoring';
+import { StatusBadge } from "@/components/StatusBadge";
+import type { Match } from "@/types/match";
+import { calculatePredictionPoints } from "@/utils/scoring";
 
 type MatchPrediction = {
   matchId?: string;
@@ -19,13 +19,13 @@ type MatchCardProps = {
 function hasRealLocation(match: Match) {
   const hasStadium =
     match.stadium &&
-    match.stadium !== 'Estadio no disponible' &&
-    match.stadium !== 'No disponible';
+    match.stadium !== "Estadio no disponible" &&
+    match.stadium !== "No disponible";
 
   const hasCity =
     match.city &&
-    match.city !== 'Ciudad no disponible' &&
-    match.city !== 'No disponible';
+    match.city !== "Ciudad no disponible" &&
+    match.city !== "No disponible";
 
   return Boolean(hasStadium || hasCity);
 }
@@ -34,20 +34,22 @@ function getLocationText(match: Match) {
   const locationParts = [match.stadium, match.city].filter(
     (item) =>
       item &&
-      item !== 'Estadio no disponible' &&
-      item !== 'Ciudad no disponible' &&
-      item !== 'No disponible'
+      item !== "Estadio no disponible" &&
+      item !== "Ciudad no disponible" &&
+      item !== "No disponible",
   );
 
-  return locationParts.join(' · ');
+  return locationParts.join(" · ");
 }
 
 function TeamNameWithFlag({
   teamName,
   flagUrl,
+  score,
 }: {
   teamName: string;
   flagUrl?: string;
+  score?: number;
 }) {
   return (
     <View style={styles.teamBox}>
@@ -59,16 +61,14 @@ function TeamNameWithFlag({
 
       <Text style={styles.team} numberOfLines={2}>
         {teamName}
+        {score !== undefined ? (
+          <Text style={styles.teamScore}> ({score})</Text>
+        ) : null}
       </Text>
     </View>
   );
 }
-
-export function MatchCard({
-  match,
-  savedPrediction,
-  onPress,
-}: MatchCardProps) {
+export function MatchCard({ match, savedPrediction, onPress }: MatchCardProps) {
   const points = calculatePredictionPoints(
     match,
     savedPrediction
@@ -77,10 +77,10 @@ export function MatchCard({
           homeScore: savedPrediction.homeScore,
           awayScore: savedPrediction.awayScore,
         }
-      : null
+      : null,
   );
 
-  const hasFinalScore =
+  const hasScore =
     match.actualHomeScore !== undefined && match.actualAwayScore !== undefined;
 
   const locationText = getLocationText(match);
@@ -102,6 +102,7 @@ export function MatchCard({
         <TeamNameWithFlag
           teamName={match.homeTeam}
           flagUrl={match.homeTeamFlag}
+          score={hasScore ? match.actualHomeScore : undefined}
         />
 
         <Text style={styles.vs}>vs</Text>
@@ -109,18 +110,9 @@ export function MatchCard({
         <TeamNameWithFlag
           teamName={match.awayTeam}
           flagUrl={match.awayTeamFlag}
+          score={hasScore ? match.actualAwayScore : undefined}
         />
       </View>
-
-      {hasFinalScore ? (
-        <View style={styles.resultBox}>
-          <Text style={styles.resultLabel}>Resultado final</Text>
-          <Text style={styles.resultScore}>
-            {match.homeTeam} {match.actualHomeScore} - {match.actualAwayScore}{' '}
-            {match.awayTeam}
-          </Text>
-        </View>
-      ) : null}
 
       <View style={styles.infoBox}>
         <Text style={styles.infoText}>
@@ -136,7 +128,7 @@ export function MatchCard({
         <View style={styles.predictionBox}>
           <Text style={styles.predictionLabel}>Predicción guardada</Text>
           <Text style={styles.predictionScore}>
-            {match.homeTeam} {savedPrediction.homeScore} -{' '}
+            {match.homeTeam} {savedPrediction.homeScore} -{" "}
             {savedPrediction.awayScore} {match.awayTeam}
           </Text>
 
@@ -153,19 +145,19 @@ export function MatchCard({
 
 const styles = StyleSheet.create({
   card: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: "#FFFFFF",
     borderRadius: 22,
     padding: 18,
     borderWidth: 1,
-    borderColor: '#E5E7EB',
+    borderColor: "#E5E7EB",
   },
   pressedCard: {
     opacity: 0.75,
     transform: [{ scale: 0.99 }],
   },
   cardHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
+    flexDirection: "row",
+    justifyContent: "space-between",
     gap: 12,
     marginBottom: 18,
   },
@@ -174,26 +166,26 @@ const styles = StyleSheet.create({
   },
   tournament: {
     fontSize: 13,
-    fontWeight: '800',
-    color: '#6B7280',
+    fontWeight: "800",
+    color: "#6B7280",
   },
   group: {
     marginTop: 2,
     fontSize: 15,
-    fontWeight: '900',
-    color: '#111827',
+    fontWeight: "900",
+    color: "#111827",
   },
   matchRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
     gap: 10,
     marginBottom: 16,
   },
   teamBox: {
     flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: "center",
+    justifyContent: "center",
     gap: 8,
   },
   flag: {
@@ -201,8 +193,8 @@ const styles = StyleSheet.create({
     height: 24,
     borderRadius: 4,
     borderWidth: 1,
-    borderColor: '#E5E7EB',
-    backgroundColor: '#F9FAFB',
+    borderColor: "#E5E7EB",
+    backgroundColor: "#F9FAFB",
   },
   flagPlaceholder: {
     width: 34,
@@ -210,72 +202,60 @@ const styles = StyleSheet.create({
   },
   team: {
     fontSize: 18,
-    fontWeight: '900',
-    color: '#111827',
-    textAlign: 'center',
+    fontWeight: "900",
+    color: "#111827",
+    textAlign: "center",
+  },
+  teamScore: {
+    fontSize: 18,
+    fontWeight: "900",
+    color: "#111827",
   },
   vs: {
     fontSize: 13,
-    fontWeight: '900',
-    color: '#9CA3AF',
-  },
-  resultBox: {
-    backgroundColor: '#F3F4F6',
-    borderRadius: 14,
-    padding: 12,
-    marginBottom: 12,
-  },
-  resultLabel: {
-    fontSize: 12,
-    fontWeight: '800',
-    color: '#6B7280',
-    marginBottom: 4,
-  },
-  resultScore: {
-    fontSize: 14,
-    fontWeight: '900',
-    color: '#111827',
+    fontWeight: "900",
+    color: "#9CA3AF",
   },
   infoBox: {
-    backgroundColor: '#F9FAFB',
+    backgroundColor: "#F9FAFB",
     borderRadius: 14,
     padding: 12,
   },
   infoText: {
     fontSize: 13,
     lineHeight: 19,
-    fontWeight: '700',
-    color: '#6B7280',
+    fontWeight: "700",
+    color: "#6B7280",
   },
   predictionBox: {
     marginTop: 12,
-    backgroundColor: '#ECFDF5',
+    backgroundColor: "#ECFDF5",
     borderRadius: 14,
     padding: 12,
     borderWidth: 1,
-    borderColor: '#A7F3D0',
+    borderColor: "#A7F3D0",
   },
   predictionLabel: {
     fontSize: 12,
-    fontWeight: '800',
-    color: '#047857',
+    fontWeight: "800",
+    color: "#047857",
     marginBottom: 4,
   },
   predictionScore: {
     fontSize: 14,
-    fontWeight: '900',
-    color: '#065F46',
+    fontWeight: "900",
+    color: "#065F46",
   },
   pointsText: {
     marginTop: 6,
     fontSize: 13,
-    fontWeight: '900',
-    color: '#047857',
+    fontWeight: "900",
+    color: "#047857",
   },
   pendingPointsText: {
     marginTop: 6,
     fontSize: 13,
-    fontWeight: '800',
-    color: '#059669',
+    fontWeight: "800",
+    color: "#059669",
   },
 });
