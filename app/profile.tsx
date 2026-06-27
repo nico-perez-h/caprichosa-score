@@ -13,6 +13,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 
 import { ScreenHeader } from "@/components/ScreenHeader";
 import { matches } from "@/data/matches";
+import { useAuth } from "../contexts/AuthContext";
 import { usePredictions } from "../contexts/PredictionsContext";
 import { useUserProfile } from "../contexts/UserProfileContext";
 import { calculatePredictionStats } from "../utils/predictionStats";
@@ -34,6 +35,7 @@ function getInitials(name: string) {
 export default function ProfileScreen() {
   const { predictions, clearPredictions } = usePredictions();
   const { playerName, savePlayerName, resetPlayerName } = useUserProfile();
+  const { user, signOut } = useAuth();
 
   const [nameInput, setNameInput] = useState(playerName);
 
@@ -131,6 +133,36 @@ export default function ProfileScreen() {
               "Datos restablecidos",
               "Tus datos de prueba fueron reiniciados correctamente.",
             );
+          },
+        },
+      ],
+    );
+  }
+
+  function handleSignOut() {
+    Alert.alert(
+      "Cerrar sesión",
+      "¿Quieres cerrar tu sesión en Caprichosa Score?",
+      [
+        {
+          text: "Cancelar",
+          style: "cancel",
+        },
+        {
+          text: "Cerrar sesión",
+          style: "destructive",
+          onPress: async () => {
+            try {
+              await signOut();
+              router.replace("/auth/login" as never);
+            } catch (error) {
+              const errorMessage =
+                error instanceof Error
+                  ? error.message
+                  : "No se pudo cerrar sesión.";
+
+              Alert.alert("Error", errorMessage);
+            }
           },
         },
       ],
@@ -243,9 +275,18 @@ export default function ProfileScreen() {
           <View style={styles.settingItem}>
             <Text style={styles.settingTitle}>Cuenta</Text>
             <Text style={styles.settingDescription}>
-              Más adelante agregaremos inicio de sesión, cerrar sesión y datos
-              de cuenta.
+              Sesión iniciada como {user?.email ?? "usuario registrado"}.
             </Text>
+
+            <Pressable
+              style={({ pressed }) => [
+                styles.signOutButton,
+                pressed && styles.buttonPressed,
+              ]}
+              onPress={handleSignOut}
+            >
+              <Text style={styles.signOutButtonText}>Cerrar sesión</Text>
+            </Pressable>
           </View>
         </View>
 
@@ -518,6 +559,19 @@ const styles = StyleSheet.create({
     fontSize: 15,
     fontWeight: "900",
     color: "#FFFFFF",
+  },
+  signOutButton: {
+    height: 46,
+    borderRadius: 14,
+    backgroundColor: "#F3F4F6",
+    alignItems: "center",
+    justifyContent: "center",
+    marginTop: 12,
+  },
+  signOutButtonText: {
+    fontSize: 15,
+    fontWeight: "900",
+    color: "#991B1B",
   },
   infoCard: {
     backgroundColor: "#EFF6FF",
