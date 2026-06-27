@@ -1,6 +1,5 @@
-import { router } from "expo-router";
 import { useEffect, useState } from "react";
-import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import { ScrollView, StyleSheet, Text, View } from "react-native";
 
 import { ScreenHeader } from "@/components/ScreenHeader";
 import {
@@ -84,7 +83,7 @@ export default function RankingScreen() {
     >
       <ScreenHeader
         title="Ranking"
-        subtitle="Revisa tus puntos, efectividad y posición actual."
+        subtitle="Mira tu posición y compite con tus amigos."
       />
 
       <View style={styles.userCard}>
@@ -106,46 +105,6 @@ export default function RankingScreen() {
             {isLoadingMatches ? "..." : stats.totalPoints}
           </Text>
           <Text style={styles.pointsLabel}>pts</Text>
-        </View>
-      </View>
-
-      <Pressable
-        style={({ pressed }) => [
-          styles.profileButton,
-          pressed && styles.profileButtonPressed,
-        ]}
-        onPress={() => router.push("/profile" as never)}
-      >
-        <Text style={styles.profileButtonText}>Ver perfil</Text>
-      </Pressable>
-
-      <View style={styles.statsGrid}>
-        <View style={styles.statCard}>
-          <Text style={styles.statValue}>
-            {isLoadingMatches ? "..." : stats.totalPredictions}
-          </Text>
-          <Text style={styles.statLabel}>Predicciones</Text>
-        </View>
-
-        <View style={styles.statCard}>
-          <Text style={styles.statValue}>
-            {isLoadingMatches ? "..." : stats.pendingPredictions}
-          </Text>
-          <Text style={styles.statLabel}>Pendientes</Text>
-        </View>
-
-        <View style={styles.statCard}>
-          <Text style={styles.statValue}>
-            {isLoadingMatches ? "..." : stats.finishedPredictions}
-          </Text>
-          <Text style={styles.statLabel}>Finalizadas</Text>
-        </View>
-
-        <View style={styles.statCard}>
-          <Text style={styles.statValue}>
-            {isLoadingMatches ? "..." : `${stats.accuracy}%`}
-          </Text>
-          <Text style={styles.statLabel}>Efectividad</Text>
         </View>
       </View>
 
@@ -202,36 +161,12 @@ export default function RankingScreen() {
         ))}
       </View>
 
-      <View style={styles.detailCard}>
-        <Text style={styles.detailTitle}>Detalle de tus aciertos</Text>
-
-        <View style={styles.detailRow}>
-          <Text style={styles.detailLabel}>Resultados exactos</Text>
-          <Text style={styles.detailValue}>{stats.exactHits}</Text>
-        </View>
-
-        <View style={styles.detailRow}>
-          <Text style={styles.detailLabel}>Ganador o empate acertado</Text>
-          <Text style={styles.detailValue}>{stats.outcomeHits}</Text>
-        </View>
-
-        <View style={styles.detailRow}>
-          <Text style={styles.detailLabel}>Predicciones falladas</Text>
-          <Text style={styles.detailValue}>{stats.failedPredictions}</Text>
-        </View>
-
-        <View style={styles.detailRow}>
-          <Text style={styles.detailLabel}>Sin resultado todavía</Text>
-          <Text style={styles.detailValue}>{stats.pendingPredictions}</Text>
-        </View>
-      </View>
-
       <View style={styles.previewCard}>
         <Text style={styles.previewTitle}>Ranking de prueba</Text>
         <Text style={styles.previewText}>
-          Esta tabla todavía usa jugadores simulados. Tus puntos ya se calculan
-          con tus predicciones reales, pero los demás participantes se
-          conectarán cuando agreguemos usuarios, grupos y Supabase.
+          Por ahora la tabla usa jugadores simulados. Tus puntos ya se calculan
+          con tus predicciones reales; después conectaremos grupos y usuarios
+          reales con Supabase.
         </Text>
       </View>
     </ScrollView>
@@ -252,7 +187,7 @@ const styles = StyleSheet.create({
     backgroundColor: "#111827",
     borderRadius: 24,
     padding: 18,
-    marginBottom: 12,
+    marginBottom: 16,
     flexDirection: "row",
     alignItems: "center",
     gap: 14,
@@ -297,51 +232,6 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: "800",
     color: "#D1D5DB",
-  },
-  profileButton: {
-    height: 50,
-    borderRadius: 16,
-    backgroundColor: "#FFFFFF",
-    borderWidth: 1,
-    borderColor: "#E5E7EB",
-    alignItems: "center",
-    justifyContent: "center",
-    marginBottom: 16,
-  },
-  profileButtonPressed: {
-    opacity: 0.75,
-    transform: [{ scale: 0.99 }],
-  },
-  profileButtonText: {
-    fontSize: 16,
-    fontWeight: "900",
-    color: "#111827",
-  },
-  statsGrid: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    gap: 12,
-    marginBottom: 16,
-  },
-  statCard: {
-    width: "47.8%",
-    backgroundColor: "#FFFFFF",
-    borderRadius: 18,
-    padding: 16,
-    borderWidth: 1,
-    borderColor: "#E5E7EB",
-  },
-  statValue: {
-    fontSize: 26,
-    fontWeight: "900",
-    color: "#111827",
-  },
-  statLabel: {
-    marginTop: 4,
-    fontSize: 13,
-    lineHeight: 18,
-    fontWeight: "800",
-    color: "#6B7280",
   },
   rankingCard: {
     backgroundColor: "#FFFFFF",
@@ -401,41 +291,6 @@ const styles = StyleSheet.create({
   },
   currentUserMetaText: {
     color: "#374151",
-  },
-  detailCard: {
-    backgroundColor: "#FFFFFF",
-    borderRadius: 20,
-    padding: 18,
-    borderWidth: 1,
-    borderColor: "#E5E7EB",
-    marginBottom: 16,
-  },
-  detailTitle: {
-    fontSize: 18,
-    fontWeight: "900",
-    color: "#111827",
-    marginBottom: 14,
-  },
-  detailRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    paddingVertical: 10,
-    borderTopWidth: 1,
-    borderTopColor: "#F3F4F6",
-    gap: 12,
-  },
-  detailLabel: {
-    flex: 1,
-    fontSize: 14,
-    lineHeight: 20,
-    fontWeight: "700",
-    color: "#6B7280",
-  },
-  detailValue: {
-    fontSize: 18,
-    fontWeight: "900",
-    color: "#111827",
   },
   previewCard: {
     backgroundColor: "#EFF6FF",
