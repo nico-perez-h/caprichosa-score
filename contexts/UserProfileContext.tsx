@@ -7,83 +7,101 @@ import {
   type ReactNode,
 } from 'react';
 
-const USER_PROFILE_STORAGE_KEY = 'caprichosa-score-user-profile';
+import { getOrCreateProfile, updateProfileName } from '../services/profileService';
+import { useAuth } from './AuthContext';
 
-type UserProfile = {
-  playerName: string;
-};
+const USER_PROFILE_STORAGE_KEY = '@caprichosa_score_user_profile';
+const DEFAULT_PLAYER_NAME = 'Jugador local';
 
 type UserProfileContextValue = {
   playerName: string;
-  savePlayerName: (name: string) => void;
-  resetPlayerName: () => void;
+  isLoadingProfile: boolean;
+  savePlayerName: (name: string) => Promise<void>;
+  resetPlayerName: () => Promise<void>;
 };
 
-const defaultProfile: UserProfile = {
-  playerName: 'Jugador local',
-};
+const UserProfileContext = createContext<UserProfileContextValue | null>(null);
 
-const UserProfileContext = createContext<UserProfileContextValue | undefined>(
-  undefined
-);
+export function UserProfileProvider({ children }: { children: ReactNode }) {
+  const { user, isLoadingSession } = useAuth();
 
-type UserProfileProviderProps = {
-  children: ReactNode;
-};
-
-export function UserProfileProvider({ children }: UserProfileProviderProps) {
-  const [playerName, setPlayerName] = useState(defaultProfile.playerName);
+  const [playerName, setPlayerName] = useState(DEFAULT_PLAYER_NAME);
+  const [isLoadingProfile, setIsLoadingProfile] = useState(true);
 
   useEffect(() => {
-    async function loadUserProfile() {
-      try {
-        const storedProfile = await AsyncStorage.getItem(
-          USER_PROFILE_STORAGE_KEY
-        );
+    async function loadProfile() {
+      if (isLoadingSession) {
+        return;
+      }
 
-        if (!storedProfile) {
+      setIsLoadingProfile(true);
+
+      try {
+        if (user) {
+          const profile = await getOrCreateProfile({
+            userId: user.id,
+            email: user.email ?? null,
+          });
+
+          setPlayerName(profile.player_name);
           return;
         }
 
-        const parsedProfile = JSON.parse(storedProfile) as UserProfile;
+        const storedName = await AsyncStorage.getItem(USER_PROFILE_STORAGE_KEY);
 
-        if (parsedProfile.playerName) {
-          setPlayerName(parsedProfile.playerName);
-        }
-      } catch {
-        setPlayerName(defaultProfile.playerName);
+        setPlayerName(storedName ?? DEFAULT_PLAYER_NAME);
+      } catch (error) {
+        console.log('Error cargando perfil:', error);
+        setPlayerName(DEFAULT_PLAYER_NAME);
+      } finally {
+        setIsLoadingProfile(false);
       }
     }
 
-    loadUserProfile();
-  }, []);
+    loadProfile();
+  }, [user, isLoadingSession]);
 
-  function savePlayerName(name: string) {
-    const cleanName = name.trim() || defaultProfile.playerName;
+  async function savePlayerName(name: string) {
+    const cleanName = name.trim() || DEFAULT_PLAYER_NAME;
 
     setPlayerName(cleanName);
 
-    AsyncStorage.setItem(
-      USER_PROFILE_STORAGE_KEY,
-      JSON.stringify({
+    if (user) {
+      await updateProfileName({
+        userId: user.id,
         playerName: cleanName,
-      })
-    ).catch(() => {});
+      });
+
+      return;
+    }
+
+    await AsyncStorage.setItem(USER_PROFILE_STORAGE_KEY, cleanName);
   }
 
-  function resetPlayerName() {
-    setPlayerName(defaultProfile.playerName);
-    AsyncStorage.removeItem(USER_PROFILE_STORAGE_KEY).catch(() => {});
+  async function resetPlayerName() {
+    setPlayerName(DEFAULT_PLAYER_NAME);
+
+    if (user) {
+      await updateProfileName({
+        userId: user.id,
+        playerName: DEFAULT_PLAYER_NAME,
+      });
+
+      return;
+    }
+
+    await AsyncStorage.removeItem(USER_PROFILE_STORAGE_KEY);
   }
+
+  const value: UserProfileContextValue = {
+    playerName,
+    isLoadingProfile,
+    savePlayerName,
+    resetPlayerName,
+  };
 
   return (
-    <UserProfileContext.Provider
-      value={{
-        playerName,
-        savePlayerName,
-        resetPlayerName,
-      }}
-    >
+    <UserProfileContext.Provider value={value}>
       {children}
     </UserProfileContext.Provider>
   );
@@ -93,7 +111,9 @@ export function useUserProfile() {
   const context = useContext(UserProfileContext);
 
   if (!context) {
-    throw new Error('useUserProfile debe usarse dentro de UserProfileProvider');
+    throw new Error(
+      'useUserProfile debe usarse dentro de UserProfileProvider'
+    );
   }
 
   return context;
