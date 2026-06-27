@@ -1,17 +1,17 @@
-import { router } from 'expo-router';
-import { useEffect, useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { router } from "expo-router";
+import { useEffect, useState } from "react";
+import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 
-import { ScreenHeader } from '@/components/ScreenHeader';
+import { ScreenHeader } from "@/components/ScreenHeader";
 import {
   mockRankingPlayers,
   type RankingPlayer,
-} from '@/data/mockRankingPlayers';
-import { getMatches } from '@/services/matchesService';
-import type { Match } from '@/types/match';
-import { usePredictions } from '../../contexts/PredictionsContext';
-import { useUserProfile } from '../../contexts/UserProfileContext';
-import { calculatePredictionStats } from '../../utils/predictionStats';
+} from "@/data/mockRankingPlayers";
+import { getMatches } from "@/services/matchesService";
+import type { Match } from "@/types/match";
+import { usePredictions } from "../../contexts/PredictionsContext";
+import { useUserProfile } from "../../contexts/UserProfileContext";
+import { calculatePredictionStats } from "../../utils/predictionStats";
 
 type RankedPlayer = RankingPlayer & {
   position: number;
@@ -44,7 +44,7 @@ export default function RankingScreen() {
   const stats = calculatePredictionStats(allMatches, predictions);
 
   const currentUserPlayer: RankingPlayer = {
-    id: 'current-user',
+    id: "current-user",
     name: playerName,
     points: stats.totalPoints,
     predictions: stats.totalPredictions,
@@ -61,7 +61,11 @@ export default function RankingScreen() {
         return secondPlayer.points - firstPlayer.points;
       }
 
-      return secondPlayer.accuracy - firstPlayer.accuracy;
+      if (secondPlayer.accuracy !== firstPlayer.accuracy) {
+        return secondPlayer.accuracy - firstPlayer.accuracy;
+      }
+
+      return secondPlayer.predictions - firstPlayer.predictions;
     })
     .map((player, index) => ({
       ...player,
@@ -69,7 +73,7 @@ export default function RankingScreen() {
     }));
 
   const currentUserRank = rankingPlayers.find(
-    (player) => player.id === 'current-user'
+    (player) => player.id === "current-user",
   );
 
   return (
@@ -80,7 +84,7 @@ export default function RankingScreen() {
     >
       <ScreenHeader
         title="Ranking"
-        subtitle="Compara tus puntos con otros jugadores de prueba."
+        subtitle="Revisa tus puntos, efectividad y posición actual."
       />
 
       <View style={styles.userCard}>
@@ -93,13 +97,13 @@ export default function RankingScreen() {
         <View style={styles.userInfo}>
           <Text style={styles.userName}>{playerName}</Text>
           <Text style={styles.userDescription}>
-            Tu posición actual en el ranking de prueba.
+            Tu posición se calcula con tus predicciones reales.
           </Text>
         </View>
 
         <View style={styles.pointsBox}>
           <Text style={styles.pointsText}>
-            {isLoadingMatches ? '...' : stats.totalPoints}
+            {isLoadingMatches ? "..." : stats.totalPoints}
           </Text>
           <Text style={styles.pointsLabel}>pts</Text>
         </View>
@@ -110,7 +114,7 @@ export default function RankingScreen() {
           styles.profileButton,
           pressed && styles.profileButtonPressed,
         ]}
-        onPress={() => router.push('/profile' as never)}
+        onPress={() => router.push("/profile" as never)}
       >
         <Text style={styles.profileButtonText}>Ver perfil</Text>
       </Pressable>
@@ -118,28 +122,28 @@ export default function RankingScreen() {
       <View style={styles.statsGrid}>
         <View style={styles.statCard}>
           <Text style={styles.statValue}>
-            {isLoadingMatches ? '...' : stats.totalPredictions}
+            {isLoadingMatches ? "..." : stats.totalPredictions}
           </Text>
           <Text style={styles.statLabel}>Predicciones</Text>
         </View>
 
         <View style={styles.statCard}>
           <Text style={styles.statValue}>
-            {isLoadingMatches ? '...' : stats.pendingPredictions}
+            {isLoadingMatches ? "..." : stats.pendingPredictions}
           </Text>
           <Text style={styles.statLabel}>Pendientes</Text>
         </View>
 
         <View style={styles.statCard}>
           <Text style={styles.statValue}>
-            {isLoadingMatches ? '...' : stats.finishedPredictions}
+            {isLoadingMatches ? "..." : stats.finishedPredictions}
           </Text>
           <Text style={styles.statLabel}>Finalizadas</Text>
         </View>
 
         <View style={styles.statCard}>
           <Text style={styles.statValue}>
-            {isLoadingMatches ? '...' : `${stats.accuracy}%`}
+            {isLoadingMatches ? "..." : `${stats.accuracy}%`}
           </Text>
           <Text style={styles.statLabel}>Efectividad</Text>
         </View>
@@ -181,7 +185,8 @@ export default function RankingScreen() {
                   player.isCurrentUser && styles.currentUserMetaText,
                 ]}
               >
-                {player.predictions} predicciones · {player.accuracy}% efectividad
+                {player.predictions} predicciones · {player.accuracy}%
+                efectividad
               </Text>
             </View>
 
@@ -214,14 +219,19 @@ export default function RankingScreen() {
           <Text style={styles.detailLabel}>Predicciones falladas</Text>
           <Text style={styles.detailValue}>{stats.failedPredictions}</Text>
         </View>
+
+        <View style={styles.detailRow}>
+          <Text style={styles.detailLabel}>Sin resultado todavía</Text>
+          <Text style={styles.detailValue}>{stats.pendingPredictions}</Text>
+        </View>
       </View>
 
       <View style={styles.previewCard}>
         <Text style={styles.previewTitle}>Ranking de prueba</Text>
         <Text style={styles.previewText}>
-          Estos jugadores todavía son simulados. Tus puntos ya se calculan con
-          tus predicciones reales, pero los demás jugadores se conectarán cuando
-          agreguemos usuarios, grupos y Supabase.
+          Esta tabla todavía usa jugadores simulados. Tus puntos ya se calculan
+          con tus predicciones reales, pero los demás participantes se
+          conectarán cuando agreguemos usuarios, grupos y Supabase.
         </Text>
       </View>
     </ScrollView>
@@ -231,7 +241,7 @@ export default function RankingScreen() {
 const styles = StyleSheet.create({
   screen: {
     flex: 1,
-    backgroundColor: '#F9FAFB',
+    backgroundColor: "#F9FAFB",
   },
   content: {
     paddingHorizontal: 24,
@@ -239,63 +249,63 @@ const styles = StyleSheet.create({
     paddingBottom: 32,
   },
   userCard: {
-    backgroundColor: '#111827',
+    backgroundColor: "#111827",
     borderRadius: 24,
     padding: 18,
     marginBottom: 12,
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     gap: 14,
   },
   positionBox: {
     width: 48,
     height: 48,
     borderRadius: 999,
-    backgroundColor: '#FFFFFF',
-    alignItems: 'center',
-    justifyContent: 'center',
+    backgroundColor: "#FFFFFF",
+    alignItems: "center",
+    justifyContent: "center",
   },
   positionText: {
     fontSize: 18,
-    fontWeight: '900',
-    color: '#111827',
+    fontWeight: "900",
+    color: "#111827",
   },
   userInfo: {
     flex: 1,
   },
   userName: {
     fontSize: 20,
-    fontWeight: '900',
-    color: '#FFFFFF',
+    fontWeight: "900",
+    color: "#FFFFFF",
   },
   userDescription: {
     marginTop: 4,
     fontSize: 13,
     lineHeight: 18,
-    fontWeight: '600',
-    color: '#D1D5DB',
+    fontWeight: "600",
+    color: "#D1D5DB",
   },
   pointsBox: {
-    alignItems: 'center',
+    alignItems: "center",
   },
   pointsText: {
     fontSize: 30,
-    fontWeight: '900',
-    color: '#FFFFFF',
+    fontWeight: "900",
+    color: "#FFFFFF",
   },
   pointsLabel: {
     fontSize: 12,
-    fontWeight: '800',
-    color: '#D1D5DB',
+    fontWeight: "800",
+    color: "#D1D5DB",
   },
   profileButton: {
     height: 50,
     borderRadius: 16,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: "#FFFFFF",
     borderWidth: 1,
-    borderColor: '#E5E7EB',
-    alignItems: 'center',
-    justifyContent: 'center',
+    borderColor: "#E5E7EB",
+    alignItems: "center",
+    justifyContent: "center",
     marginBottom: 16,
   },
   profileButtonPressed: {
@@ -304,59 +314,59 @@ const styles = StyleSheet.create({
   },
   profileButtonText: {
     fontSize: 16,
-    fontWeight: '900',
-    color: '#111827',
+    fontWeight: "900",
+    color: "#111827",
   },
   statsGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
+    flexDirection: "row",
+    flexWrap: "wrap",
     gap: 12,
     marginBottom: 16,
   },
   statCard: {
-    width: '47.8%',
-    backgroundColor: '#FFFFFF',
+    width: "47.8%",
+    backgroundColor: "#FFFFFF",
     borderRadius: 18,
     padding: 16,
     borderWidth: 1,
-    borderColor: '#E5E7EB',
+    borderColor: "#E5E7EB",
   },
   statValue: {
     fontSize: 26,
-    fontWeight: '900',
-    color: '#111827',
+    fontWeight: "900",
+    color: "#111827",
   },
   statLabel: {
     marginTop: 4,
     fontSize: 13,
     lineHeight: 18,
-    fontWeight: '800',
-    color: '#6B7280',
+    fontWeight: "800",
+    color: "#6B7280",
   },
   rankingCard: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: "#FFFFFF",
     borderRadius: 20,
     padding: 18,
     borderWidth: 1,
-    borderColor: '#E5E7EB',
+    borderColor: "#E5E7EB",
     marginBottom: 16,
   },
   rankingTitle: {
     fontSize: 18,
-    fontWeight: '900',
-    color: '#111827',
+    fontWeight: "900",
+    color: "#111827",
     marginBottom: 10,
   },
   rankingRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     gap: 12,
     paddingVertical: 12,
     borderTopWidth: 1,
-    borderTopColor: '#F3F4F6',
+    borderTopColor: "#F3F4F6",
   },
   currentUserRankingRow: {
-    backgroundColor: '#F9FAFB',
+    backgroundColor: "#F9FAFB",
     marginHorizontal: -8,
     paddingHorizontal: 8,
     borderRadius: 14,
@@ -364,86 +374,86 @@ const styles = StyleSheet.create({
   rankingPosition: {
     width: 38,
     fontSize: 15,
-    fontWeight: '900',
-    color: '#9CA3AF',
+    fontWeight: "900",
+    color: "#9CA3AF",
   },
   rankingPlayerInfo: {
     flex: 1,
   },
   rankingName: {
     fontSize: 15,
-    fontWeight: '900',
-    color: '#111827',
+    fontWeight: "900",
+    color: "#111827",
   },
   rankingMeta: {
     marginTop: 3,
     fontSize: 12,
-    fontWeight: '700',
-    color: '#6B7280',
+    fontWeight: "700",
+    color: "#6B7280",
   },
   rankingPoints: {
     fontSize: 15,
-    fontWeight: '900',
-    color: '#111827',
+    fontWeight: "900",
+    color: "#111827",
   },
   currentUserText: {
-    color: '#111827',
+    color: "#111827",
   },
   currentUserMetaText: {
-    color: '#374151',
+    color: "#374151",
   },
   detailCard: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: "#FFFFFF",
     borderRadius: 20,
     padding: 18,
     borderWidth: 1,
-    borderColor: '#E5E7EB',
+    borderColor: "#E5E7EB",
     marginBottom: 16,
   },
   detailTitle: {
     fontSize: 18,
-    fontWeight: '900',
-    color: '#111827',
+    fontWeight: "900",
+    color: "#111827",
     marginBottom: 14,
   },
   detailRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
     paddingVertical: 10,
     borderTopWidth: 1,
-    borderTopColor: '#F3F4F6',
+    borderTopColor: "#F3F4F6",
     gap: 12,
   },
   detailLabel: {
     flex: 1,
     fontSize: 14,
     lineHeight: 20,
-    fontWeight: '700',
-    color: '#6B7280',
+    fontWeight: "700",
+    color: "#6B7280",
   },
   detailValue: {
     fontSize: 18,
-    fontWeight: '900',
-    color: '#111827',
+    fontWeight: "900",
+    color: "#111827",
   },
   previewCard: {
-    backgroundColor: '#EFF6FF',
+    backgroundColor: "#EFF6FF",
     borderRadius: 20,
     padding: 18,
     borderWidth: 1,
-    borderColor: '#BFDBFE',
+    borderColor: "#BFDBFE",
   },
   previewTitle: {
     fontSize: 16,
-    fontWeight: '900',
-    color: '#1D4ED8',
+    fontWeight: "900",
+    color: "#1D4ED8",
     marginBottom: 6,
   },
   previewText: {
     fontSize: 14,
     lineHeight: 20,
-    fontWeight: '600',
-    color: '#1E40AF',
+    fontWeight: "600",
+    color: "#1E40AF",
   },
 });
