@@ -1,20 +1,23 @@
+import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import { useEffect, useState } from 'react';
-import { SectionList, StyleSheet, Text, View } from 'react-native';
+import {
+  Alert,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  View,
+} from 'react-native';
 
 import { MatchCard } from '@/components/MatchCard';
-import { ScoringRulesCard } from '@/components/ScoringRulesCard';
 import { ScreenHeader } from '@/components/ScreenHeader';
 import { getMatches } from '@/services/matchesService';
 import type { Match } from '@/types/match';
 import { usePredictions } from '../../contexts/PredictionsContext';
 import { calculateTotalPredictionPoints } from '../../utils/scoring';
 
-type PredictionSection = {
-  title: string;
-  description: string;
-  data: Match[];
-};
+type PredictionFilter = 'pending' | 'predicted';
 
 function parseMatchDate(match: Match) {
   const [day, month, year] = match.date.split('/');
@@ -60,11 +63,49 @@ function isConfirmedMatch(match: Match) {
   );
 }
 
+function getEmptyTitle({
+  isLoadingMatches,
+  selectedFilter,
+}: {
+  isLoadingMatches: boolean;
+  selectedFilter: PredictionFilter;
+}) {
+  if (isLoadingMatches) {
+    return 'Cargando predicciones...';
+  }
+
+  if (selectedFilter === 'pending') {
+    return 'No tienes partidos por hacer';
+  }
+
+  return 'No tienes predicciones guardadas';
+}
+
+function getEmptyText({
+  isLoadingMatches,
+  selectedFilter,
+}: {
+  isLoadingMatches: boolean;
+  selectedFilter: PredictionFilter;
+}) {
+  if (isLoadingMatches) {
+    return 'Estamos revisando tus partidos y predicciones guardadas.';
+  }
+
+  if (selectedFilter === 'pending') {
+    return 'Cuando haya partidos confirmados sin predicción, aparecerán aquí.';
+  }
+
+  return 'Cuando guardes una predicción, aparecerá en esta sección.';
+}
+
 export default function PredictionsScreen() {
   const { predictions, getPrediction } = usePredictions();
 
   const [allMatches, setAllMatches] = useState<Match[]>([]);
   const [isLoadingMatches, setIsLoadingMatches] = useState(true);
+  const [selectedFilter, setSelectedFilter] =
+    useState<PredictionFilter>('pending');
 
   useEffect(() => {
     async function loadMatches() {
@@ -79,6 +120,13 @@ export default function PredictionsScreen() {
     loadMatches();
   }, []);
 
+  function showScoringRules() {
+    Alert.alert(
+      'Reglas de puntuación',
+      'Resultado exacto: 3 puntos\nGanador o empate correcto: 1 punto\nResultado incorrecto: 0 puntos'
+    );
+  }
+
   const predictedMatches = allMatches.filter((match) =>
     Boolean(predictions[match.id])
   );
@@ -92,112 +140,143 @@ export default function PredictionsScreen() {
     )
   );
 
-  const pendingPredictedMatches = sortMatchesByDate(
-    predictedMatches.filter((match) => match.status === 'Por jugar')
-  );
-
-  const finishedPredictedMatches = sortMatchesByDate(
-    predictedMatches.filter(
-      (match) =>
-        match.actualHomeScore !== undefined &&
-        match.actualAwayScore !== undefined
-    )
+  const matchesWithPrediction = sortMatchesByDate(
+    predictedMatches.filter(isConfirmedMatch)
   );
 
   const totalPoints = calculateTotalPredictionPoints(allMatches, predictions);
   const totalPredictions = predictedMatches.length;
 
-  const sections: PredictionSection[] = [
-    {
-      title: 'Por hacer',
-      description:
-        'Partidos confirmados donde todavía puedes guardar una predicción.',
-      data: availableMatchesWithoutPrediction,
-    },
-    {
-      title: 'Pendientes',
-      description: 'Predicciones guardadas que todavía esperan resultado final.',
-      data: pendingPredictedMatches,
-    },
-    {
-      title: 'Finalizadas',
-      description: 'Predicciones que ya tienen puntos calculados.',
-      data: finishedPredictedMatches,
-    },
-  ].filter((section) => section.data.length > 0);
+  const visibleMatches =
+    selectedFilter === 'pending'
+      ? availableMatchesWithoutPrediction
+      : matchesWithPrediction;
 
   return (
     <View style={styles.screen}>
-      <SectionList
-        sections={sections}
-        keyExtractor={(item) => item.id}
-        stickySectionHeadersEnabled={false}
+      <ScrollView
+        contentContainerStyle={styles.content}
         showsVerticalScrollIndicator={false}
-        contentContainerStyle={styles.list}
-        ListHeaderComponent={
-          <>
-            <ScreenHeader
-              title="Predicciones"
-              subtitle="Guarda nuevas predicciones y revisa las que ya hiciste."
-            />
+      >
+        <ScreenHeader
+          title="Predicciones"
+          subtitle="Guarda tus marcadores y revisa los partidos que ya predijiste."
+        />
 
-            <View style={styles.summaryCard}>
-              <View style={styles.summaryItem}>
-                <Text style={styles.summaryValue}>{totalPoints}</Text>
-                <Text style={styles.summaryLabel}>Puntos</Text>
-              </View>
-
-              <View style={styles.summaryDivider} />
-
-              <View style={styles.summaryItem}>
-                <Text style={styles.summaryValue}>{totalPredictions}</Text>
-                <Text style={styles.summaryLabel}>Predicciones</Text>
-              </View>
-
-              <View style={styles.summaryDivider} />
-
-              <View style={styles.summaryItem}>
-                <Text style={styles.summaryValue}>
-                  {availableMatchesWithoutPrediction.length}
-                </Text>
-                <Text style={styles.summaryLabel}>Por hacer</Text>
-              </View>
-            </View>
-
-            <ScoringRulesCard />
-          </>
-        }
-        renderSectionHeader={({ section }) => (
-          <View style={styles.sectionHeader}>
-            <Text style={styles.sectionTitle}>{section.title}</Text>
-            <Text style={styles.sectionDescription}>{section.description}</Text>
+        <View style={styles.summaryCard}>
+          <View style={styles.summaryItem}>
+            <Text style={styles.summaryValue}>{totalPoints}</Text>
+            <Text style={styles.summaryLabel}>Puntos</Text>
           </View>
-        )}
-        renderItem={({ item }) => (
-          <View style={styles.matchCardWrapper}>
-            <MatchCard
-              match={item}
-              savedPrediction={getPrediction(item.id)}
-              onPress={() => router.push(`/match/${item.id}` as never)}
-            />
+
+          <View style={styles.summaryDivider} />
+
+          <View style={styles.summaryItem}>
+            <Text style={styles.summaryValue}>{totalPredictions}</Text>
+            <Text style={styles.summaryLabel}>Predicciones</Text>
           </View>
-        )}
-        ListEmptyComponent={
+
+          <View style={styles.summaryDivider} />
+
+          <View style={styles.summaryItem}>
+            <Text style={styles.summaryValue}>
+              {availableMatchesWithoutPrediction.length}
+            </Text>
+            <Text style={styles.summaryLabel}>Por hacer</Text>
+          </View>
+        </View>
+
+        <View style={styles.rulesRow}>
+          <Text style={styles.rulesTitle}>Reglas</Text>
+
+          <Pressable
+            style={({ pressed }) => [
+              styles.infoButton,
+              pressed && styles.buttonPressed,
+            ]}
+            onPress={showScoringRules}
+          >
+            <MaterialCommunityIcons
+              name="information-outline"
+              size={24}
+              color="#111827"
+            />
+          </Pressable>
+        </View>
+
+        <View style={styles.filtersRow}>
+          <Pressable
+            style={({ pressed }) => [
+              styles.filterButton,
+              selectedFilter === 'pending' && styles.activeFilterButton,
+              pressed && styles.buttonPressed,
+            ]}
+            onPress={() => setSelectedFilter('pending')}
+          >
+            <Text
+              style={[
+                styles.filterButtonText,
+                selectedFilter === 'pending' && styles.activeFilterButtonText,
+              ]}
+            >
+              Por hacer
+            </Text>
+          </Pressable>
+
+          <Pressable
+            style={({ pressed }) => [
+              styles.filterButton,
+              selectedFilter === 'predicted' && styles.activeFilterButton,
+              pressed && styles.buttonPressed,
+            ]}
+            onPress={() => setSelectedFilter('predicted')}
+          >
+            <Text
+              style={[
+                styles.filterButtonText,
+                selectedFilter === 'predicted' &&
+                  styles.activeFilterButtonText,
+              ]}
+            >
+              Con predicción
+            </Text>
+          </Pressable>
+        </View>
+
+        <View style={styles.sectionHeader}>
+          <Text style={styles.sectionTitle}>
+            {selectedFilter === 'pending' ? 'Por hacer' : 'Con predicción'}
+          </Text>
+          <Text style={styles.sectionDescription}>
+            {selectedFilter === 'pending'
+              ? 'Partidos confirmados donde todavía puedes guardar una predicción.'
+              : 'Partidos donde ya guardaste un marcador.'}
+          </Text>
+        </View>
+
+        {visibleMatches.length > 0 ? (
+          <View style={styles.matchesList}>
+            {visibleMatches.map((match) => (
+              <MatchCard
+                key={match.id}
+                match={match}
+                savedPrediction={getPrediction(match.id)}
+                onPress={() => router.push(`/match/${match.id}` as never)}
+              />
+            ))}
+          </View>
+        ) : (
           <View style={styles.emptyCard}>
             <Text style={styles.emptyTitle}>
-              {isLoadingMatches
-                ? 'Cargando predicciones...'
-                : 'No hay predicciones pendientes'}
+              {getEmptyTitle({ isLoadingMatches, selectedFilter })}
             </Text>
 
             <Text style={styles.emptyText}>
-              {isLoadingMatches
-                ? 'Estamos revisando tus partidos y predicciones guardadas.'
-                : 'Cuando haya partidos confirmados disponibles, aparecerán aquí.'}
+              {getEmptyText({ isLoadingMatches, selectedFilter })}
             </Text>
           </View>
-        }
-      />
+        )}
+      </ScrollView>
     </View>
   );
 }
@@ -206,10 +285,10 @@ const styles = StyleSheet.create({
   screen: {
     flex: 1,
     backgroundColor: '#F9FAFB',
+  },
+  content: {
     paddingHorizontal: 24,
     paddingTop: 72,
-  },
-  list: {
     paddingBottom: 24,
   },
   summaryCard: {
@@ -243,8 +322,59 @@ const styles = StyleSheet.create({
     height: 42,
     backgroundColor: '#E5E7EB',
   },
+  rulesRow: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 18,
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+    marginBottom: 14,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  rulesTitle: {
+    fontSize: 17,
+    fontWeight: '900',
+    color: '#111827',
+  },
+  infoButton: {
+    width: 38,
+    height: 38,
+    borderRadius: 999,
+    backgroundColor: '#F3F4F6',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  filtersRow: {
+    flexDirection: 'row',
+    gap: 10,
+    marginBottom: 18,
+  },
+  filterButton: {
+    flex: 1,
+    height: 44,
+    borderRadius: 999,
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  activeFilterButton: {
+    backgroundColor: '#111827',
+    borderColor: '#111827',
+  },
+  filterButtonText: {
+    fontSize: 14,
+    fontWeight: '900',
+    color: '#6B7280',
+  },
+  activeFilterButtonText: {
+    color: '#FFFFFF',
+  },
   sectionHeader: {
-    marginTop: 4,
     marginBottom: 10,
   },
   sectionTitle: {
@@ -259,8 +389,8 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: '#6B7280',
   },
-  matchCardWrapper: {
-    marginBottom: 14,
+  matchesList: {
+    gap: 14,
   },
   emptyCard: {
     backgroundColor: '#FFFFFF',
@@ -280,5 +410,9 @@ const styles = StyleSheet.create({
     fontSize: 14,
     lineHeight: 20,
     color: '#6B7280',
+  },
+  buttonPressed: {
+    opacity: 0.75,
+    transform: [{ scale: 0.99 }],
   },
 });
