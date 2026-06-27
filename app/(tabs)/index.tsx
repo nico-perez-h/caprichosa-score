@@ -1,31 +1,75 @@
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { router } from "expo-router";
 import { useEffect, useState } from "react";
-import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import {
+  ActivityIndicator,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  View,
+} from "react-native";
 
-import { ScoringRulesCard } from "@/components/ScoringRulesCard";
-import { ScreenHeader } from "@/components/ScreenHeader";
-import { tournaments } from "@/data/tournaments";
-import { getPredictableMatchesOnly } from "@/services/matchesService";
+import { MatchCard } from "@/components/MatchCard";
+import { getMatches, getTodayMatches } from "@/services/matchesService";
 import type { Match } from "@/types/match";
 import { usePredictions } from "../../contexts/PredictionsContext";
 import { useUserProfile } from "../../contexts/UserProfileContext";
 import { calculateTotalPredictionPoints } from "../../utils/scoring";
 
+function isPlaceholderTeam(teamName: string) {
+  const cleanTeamName = teamName.trim().toLowerCase();
+
+  return (
+    cleanTeamName.includes("tbd") ||
+    cleanTeamName.includes("por definir") ||
+    cleanTeamName.includes("winner") ||
+    cleanTeamName.includes("ganador") ||
+    cleanTeamName.includes("1st group") ||
+    cleanTeamName.includes("2nd group") ||
+    cleanTeamName.includes("3rd group") ||
+    cleanTeamName.includes("local") ||
+    cleanTeamName.includes("visitante")
+  );
+}
+
+function isConfirmedMatch(match: Match) {
+  return (
+    !isPlaceholderTeam(match.homeTeam) &&
+    !isPlaceholderTeam(match.awayTeam) &&
+    match.homeTeam.trim().length > 0 &&
+    match.awayTeam.trim().length > 0
+  );
+}
+
+function getMatchesWithoutPrediction(matches: Match[], predictions: Record<string, unknown>) {
+  return matches.filter(
+    (match) =>
+      match.status === "Por jugar" &&
+      isConfirmedMatch(match) &&
+      !predictions[match.id],
+  );
+}
+
 export default function HomeScreen() {
-  const { predictions } = usePredictions();
+  const { predictions, getPrediction } = usePredictions();
   const { playerName } = useUserProfile();
 
   const [allMatches, setAllMatches] = useState<Match[]>([]);
+  const [todayMatches, setTodayMatches] = useState<Match[]>([]);
   const [isLoadingMatches, setIsLoadingMatches] = useState(true);
 
   useEffect(() => {
     async function loadMatches() {
       setIsLoadingMatches(true);
 
-      const loadedMatches = await getPredictableMatchesOnly();
+      const [loadedMatches, loadedTodayMatches] = await Promise.all([
+        getMatches(),
+        getTodayMatches(),
+      ]);
 
       setAllMatches(loadedMatches);
+      setTodayMatches(loadedTodayMatches.filter(isConfirmedMatch));
       setIsLoadingMatches(false);
     }
 
@@ -34,10 +78,7 @@ export default function HomeScreen() {
 
   const totalPoints = calculateTotalPredictionPoints(allMatches, predictions);
   const totalPredictions = Object.keys(predictions).length;
-  const totalMatches = allMatches.length;
-  const activeTournaments = tournaments.filter(
-    (tournament) => tournament.status === "Disponible",
-  ).length;
+  const pendingPredictions = getMatchesWithoutPrediction(allMatches, predictions);
 
   return (
     <ScrollView
@@ -46,44 +87,19 @@ export default function HomeScreen() {
       showsVerticalScrollIndicator={false}
     >
       <View style={styles.logoBox}>
-        <MaterialCommunityIcons name="soccer" size={45} color="#FFFFFF" />
+        <MaterialCommunityIcons name="soccer" size={40} color="#FFFFFF" />
       </View>
 
-      <ScreenHeader
-        title="Caprichosa Score"
-        subtitle="Predice resultados, suma puntos y compite con tus amigos."
-      />
-
-      <View style={styles.profileShortcutCard}>
-        <View style={styles.profileTextBox}>
-          <Text style={styles.profileTitle}>Hola, {playerName}</Text>
-          <Text style={styles.profileDescription}>
-            Revisa tus estadísticas, puntos y configuración de cuenta.
-          </Text>
-        </View>
-
-        <Pressable
-          style={({ pressed }) => [
-            styles.profileButton,
-            pressed && styles.buttonPressed,
-          ]}
-          onPress={() => router.push("/profile" as never)}
-        >
-          <Text style={styles.profileButtonText}>Ver perfil</Text>
-        </Pressable>
-
-        <Pressable
-          style={({ pressed }) => [
-            styles.secondaryButton,
-            pressed && styles.buttonPressed,
-          ]}
-          onPress={() => router.push("/api-status" as never)}
-        >
-          <Text style={styles.secondaryButtonText}>Estado de API</Text>
-        </Pressable>
+      <View style={styles.header}>
+        <Text style={styles.greeting}>Hola, {playerName}</Text>
+        <Text style={styles.title}>Bienvenido a Caprichosa Score</Text>
+        <Text style={styles.subtitle}>
+          Revisa los partidos de hoy y sigue sumando puntos con tus
+          predicciones.
+        </Text>
       </View>
 
-      <View style={styles.statsGrid}>
+      <View style={styles.statsRow}>
         <View style={styles.statCard}>
           <Text style={styles.statValue}>{totalPoints}</Text>
           <Text style={styles.statLabel}>Puntos</Text>
@@ -96,68 +112,47 @@ export default function HomeScreen() {
 
         <View style={styles.statCard}>
           <Text style={styles.statValue}>
-            {isLoadingMatches ? "..." : totalMatches}
+            {isLoadingMatches ? "..." : pendingPredictions.length}
           </Text>
-          <Text style={styles.statLabel}>Disponibles</Text>
-        </View>
-
-        <View style={styles.statCard}>
-          <Text style={styles.statValue}>{activeTournaments}</Text>
-          <Text style={styles.statLabel}>Torneos activos</Text>
+          <Text style={styles.statLabel}>Por hacer</Text>
         </View>
       </View>
 
-      <View style={styles.nextCard}>
-        <Text style={styles.nextTitle}>Sigue prediciendo</Text>
-        <Text style={styles.nextText}>
-          Entra a los partidos disponibles y guarda tus marcadores antes de que
-          empiecen.
+      <View style={styles.sectionHeader}>
+        <Text style={styles.sectionTitle}>Partidos de hoy</Text>
+        <Text style={styles.sectionDescription}>
+          Los encuentros programados para este día.
         </Text>
-
-        <Pressable
-          style={({ pressed }) => [
-            styles.primaryButton,
-            pressed && styles.buttonPressed,
-          ]}
-          onPress={() => router.push("/matches" as never)}
-        >
-          <Text style={styles.primaryButtonText}>Ver partidos</Text>
-        </Pressable>
       </View>
 
-      <ScoringRulesCard />
-
-      <View style={styles.actionsRow}>
-        <Pressable
-          style={({ pressed }) => [
-            styles.secondaryButton,
-            pressed && styles.buttonPressed,
-          ]}
-          onPress={() => router.push("/tournaments" as never)}
-        >
-          <Text style={styles.secondaryButtonText}>Torneos</Text>
-        </Pressable>
-
-        <Pressable
-          style={({ pressed }) => [
-            styles.secondaryButton,
-            pressed && styles.buttonPressed,
-          ]}
-          onPress={() => router.push("/predictions" as never)}
-        >
-          <Text style={styles.secondaryButtonText}>Predicciones</Text>
-        </Pressable>
-      </View>
-
-      <Pressable
-        style={({ pressed }) => [
-          styles.resultsButton,
-          pressed && styles.buttonPressed,
-        ]}
-        onPress={() => router.push("/results" as never)}
-      >
-        <Text style={styles.resultsButtonText}>Ver resultados</Text>
-      </Pressable>
+      {isLoadingMatches ? (
+        <View style={styles.emptyCard}>
+          <ActivityIndicator color="#111827" />
+          <Text style={styles.emptyTitle}>Cargando partidos...</Text>
+          <Text style={styles.emptyText}>
+            Estamos revisando los partidos disponibles.
+          </Text>
+        </View>
+      ) : todayMatches.length > 0 ? (
+        <View style={styles.matchesList}>
+          {todayMatches.map((match) => (
+            <MatchCard
+              key={match.id}
+              match={match}
+              savedPrediction={getPrediction(match.id)}
+              onPress={() => router.push(`/match/${match.id}` as never)}
+            />
+          ))}
+        </View>
+      ) : (
+        <View style={styles.emptyCard}>
+          <Text style={styles.emptyTitle}>No hay partidos hoy</Text>
+          <Text style={styles.emptyText}>
+            Cuando haya partidos programados para este día, aparecerán aquí.
+            Puedes revisar los próximos encuentros en la pestaña Partidos.
+          </Text>
+        </View>
+      )}
     </ScrollView>
   );
 }
@@ -179,135 +174,95 @@ const styles = StyleSheet.create({
     backgroundColor: "#111827",
     alignItems: "center",
     justifyContent: "center",
-    marginBottom: 18,
+    marginBottom: 22,
   },
-  profileShortcutCard: {
-    backgroundColor: "#111827",
-    borderRadius: 22,
-    padding: 18,
-    marginBottom: 16,
+  header: {
+    marginBottom: 22,
   },
-  profileTextBox: {
-    marginBottom: 14,
-  },
-  profileTitle: {
-    fontSize: 19,
+  greeting: {
+    fontSize: 17,
     fontWeight: "900",
-    color: "#FFFFFF",
+    color: "#6B7280",
+    marginBottom: 8,
   },
-  profileDescription: {
-    marginTop: 6,
-    fontSize: 14,
-    lineHeight: 20,
-    fontWeight: "600",
-    color: "#D1D5DB",
-  },
-  profileButton: {
-    height: 48,
-    borderRadius: 14,
-    backgroundColor: "#FFFFFF",
-    alignItems: "center",
-    justifyContent: "center",
-    marginBottom: 10,
-  },
-  profileButtonText: {
-    fontSize: 15,
+  title: {
+    fontSize: 34,
+    lineHeight: 39,
     fontWeight: "900",
     color: "#111827",
   },
-  statsGrid: {
+  subtitle: {
+    marginTop: 10,
+    fontSize: 15,
+    lineHeight: 22,
+    fontWeight: "600",
+    color: "#6B7280",
+  },
+  statsRow: {
     flexDirection: "row",
-    flexWrap: "wrap",
-    gap: 12,
-    marginBottom: 16,
+    gap: 10,
+    marginBottom: 24,
   },
   statCard: {
-    width: "47.8%",
+    flex: 1,
     backgroundColor: "#FFFFFF",
     borderRadius: 18,
-    padding: 16,
+    paddingVertical: 16,
+    paddingHorizontal: 12,
     borderWidth: 1,
     borderColor: "#E5E7EB",
   },
   statValue: {
-    fontSize: 28,
+    fontSize: 25,
     fontWeight: "900",
     color: "#111827",
   },
   statLabel: {
     marginTop: 4,
-    fontSize: 13,
-    lineHeight: 18,
+    fontSize: 12,
+    lineHeight: 16,
     fontWeight: "800",
     color: "#6B7280",
   },
-  nextCard: {
-    backgroundColor: "#FFFFFF",
-    borderRadius: 22,
-    padding: 18,
-    borderWidth: 1,
-    borderColor: "#E5E7EB",
-    marginBottom: 16,
+  sectionHeader: {
+    marginBottom: 12,
   },
-  nextTitle: {
-    fontSize: 20,
+  sectionTitle: {
+    fontSize: 22,
     fontWeight: "900",
     color: "#111827",
   },
-  nextText: {
-    marginTop: 8,
-    marginBottom: 16,
+  sectionDescription: {
+    marginTop: 4,
     fontSize: 14,
     lineHeight: 20,
     fontWeight: "600",
     color: "#6B7280",
   },
-  primaryButton: {
-    height: 52,
-    borderRadius: 14,
-    backgroundColor: "#111827",
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  primaryButtonText: {
-    fontSize: 16,
-    fontWeight: "900",
-    color: "#FFFFFF",
-  },
-  actionsRow: {
-    flexDirection: "row",
+  matchesList: {
     gap: 12,
   },
-  secondaryButton: {
-    flex: 1,
-    height: 50,
-    borderRadius: 14,
+  emptyCard: {
     backgroundColor: "#FFFFFF",
+    borderRadius: 22,
+    padding: 18,
     borderWidth: 1,
     borderColor: "#E5E7EB",
     alignItems: "center",
-    justifyContent: "center",
   },
-  secondaryButtonText: {
-    fontSize: 15,
+  emptyTitle: {
+    marginTop: 10,
+    fontSize: 17,
     fontWeight: "900",
     color: "#111827",
+    textAlign: "center",
   },
-  resultsButton: {
-    height: 52,
-    borderRadius: 14,
-    backgroundColor: "#111827",
-    alignItems: "center",
-    justifyContent: "center",
-    marginTop: 12,
-  },
-  resultsButtonText: {
-    fontSize: 16,
-    fontWeight: "900",
-    color: "#FFFFFF",
-  },
-  buttonPressed: {
-    opacity: 0.75,
-    transform: [{ scale: 0.99 }],
+  emptyText: {
+    marginTop: 6,
+    fontSize: 14,
+    lineHeight: 20,
+    fontWeight: "600",
+    color: "#6B7280",
+    textAlign: "center",
   },
 });

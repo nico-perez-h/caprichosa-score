@@ -182,7 +182,7 @@ export default function ProfileScreen() {
 
         <ScreenHeader
           title="Perfil"
-          subtitle="Edita tu nombre, revisa tus estadísticas y prepara tu cuenta para competir."
+          subtitle="Edita tu nombre, revisa tus estadísticas y administra tu cuenta."
         />
 
         <View style={styles.profileCard}>
@@ -192,13 +192,16 @@ export default function ProfileScreen() {
 
           <Text style={styles.userName}>{playerName}</Text>
           <Text style={styles.userDescription}>
-            Este será el nombre que aparecerá en tu ranking local.
+            Este nombre se guarda en tu cuenta y aparecerá en rankings y grupos.
           </Text>
         </View>
 
         <View style={styles.editCard}>
           <Text style={styles.cardTitle}>Nombre de jugador</Text>
-
+          <Text style={styles.cardDescription}>
+            Este nombre se guarda en Supabase y se usará para tus grupos y
+            rankings.
+          </Text>
           <TextInput
             value={nameInput}
             onChangeText={setNameInput}
@@ -253,12 +256,12 @@ export default function ProfileScreen() {
         </View>
 
         <View style={styles.settingsCard}>
-          <Text style={styles.cardTitle}>Configuración futura</Text>
+          <Text style={styles.cardTitle}>Configuración</Text>
 
           <View style={styles.settingItem}>
             <Text style={styles.settingTitle}>Grupo de amigos</Text>
             <Text style={styles.settingDescription}>
-              Aquí se mostrarán los grupos donde compites con otras personas.
+              Aquí podrás crear o unirte a grupos para competir con tus amigos.
             </Text>
 
             <Pressable
@@ -323,11 +326,10 @@ export default function ProfileScreen() {
         </View>
 
         <View style={styles.infoCard}>
-          <Text style={styles.infoTitle}>Versión de prueba</Text>
+          <Text style={styles.infoTitle}>Cuenta conectada</Text>
           <Text style={styles.infoText}>
-            Esta pantalla todavía usa datos locales. Cuando conectemos Supabase,
-            aquí podremos mostrar tu nombre real, email, grupos, amigos y
-            estadísticas guardadas en la nube.
+            Tu sesión y nombre de jugador ya están conectados con Supabase. El
+            siguiente paso será guardar predicciones y grupos en la nube.
           </Text>
         </View>
       </ScrollView>
@@ -461,6 +463,13 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: "900",
     color: "#111827",
+    marginBottom: 14,
+  },
+  cardDescription: {
+    fontSize: 14,
+    lineHeight: 20,
+    fontWeight: "600",
+    color: "#6B7280",
     marginBottom: 14,
   },
   statRow: {
