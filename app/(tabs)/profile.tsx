@@ -176,10 +176,6 @@ export default function ProfileScreen() {
         contentContainerStyle={styles.content}
         showsVerticalScrollIndicator={false}
       >
-        <Pressable style={styles.backButton} onPress={() => router.back()}>
-          <Text style={styles.backButtonText}>← Volver</Text>
-        </Pressable>
-
         <ScreenHeader
           title="Perfil"
           subtitle="Edita tu nombre, revisa tus estadísticas y administra tu cuenta."
@@ -252,6 +248,28 @@ export default function ProfileScreen() {
           <View style={styles.statRow}>
             <Text style={styles.statLabel}>Efectividad</Text>
             <Text style={styles.statValue}>{stats.accuracy}%</Text>
+          </View>
+        </View>
+
+        <View style={styles.announcementsCard}>
+          <Text style={styles.cardTitle}>Anuncios</Text>
+
+          <View style={styles.announcementItem}>
+            <Text style={styles.announcementTitle}>
+              Próximamente nuevos torneos
+            </Text>
+            <Text style={styles.announcementDescription}>
+              Después del Mundial podremos agregar Champions League, Premier
+              League, Copa Libertadores y otros torneos.
+            </Text>
+          </View>
+
+          <View style={styles.announcementItem}>
+            <Text style={styles.announcementTitle}>Grupos con amigos</Text>
+            <Text style={styles.announcementDescription}>
+              Muy pronto podrás crear grupos, invitar personas y competir en
+              rankings privados.
+            </Text>
           </View>
         </View>
 
@@ -328,8 +346,7 @@ export default function ProfileScreen() {
         <View style={styles.infoCard}>
           <Text style={styles.infoTitle}>Cuenta conectada</Text>
           <Text style={styles.infoText}>
-            Tu sesión y nombre de jugador ya están conectados con Supabase. El
-            siguiente paso será guardar predicciones y grupos en la nube.
+            Tu sesión y nombre de jugador ya están conectados con Supabase.
           </Text>
         </View>
       </ScrollView>
@@ -450,6 +467,31 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: "#E5E7EB",
     marginBottom: 16,
+  },
+  announcementsCard: {
+    backgroundColor: "#FFFFFF",
+    borderRadius: 20,
+    padding: 18,
+    borderWidth: 1,
+    borderColor: "#E5E7EB",
+    marginBottom: 16,
+  },
+  announcementItem: {
+    paddingVertical: 12,
+    borderTopWidth: 1,
+    borderTopColor: "#F3F4F6",
+  },
+  announcementTitle: {
+    fontSize: 15,
+    fontWeight: "900",
+    color: "#111827",
+  },
+  announcementDescription: {
+    marginTop: 4,
+    fontSize: 14,
+    lineHeight: 20,
+    fontWeight: "600",
+    color: "#6B7280",
   },
   settingsCard: {
     backgroundColor: "#FFFFFF",
