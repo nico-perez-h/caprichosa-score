@@ -15,7 +15,6 @@ export default function RootLayout() {
             <Stack.Screen name="(tabs)" />
             <Stack.Screen name="tournament/[id]" />
             <Stack.Screen name="match/[id]" />
-            <Stack.Screen name="profile" />
             <Stack.Screen name="group" />
             <Stack.Screen name="join-group" />
             <Stack.Screen name="create-group" />

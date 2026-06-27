@@ -13,10 +13,10 @@ import { SafeAreaView } from "react-native-safe-area-context";
 
 import { ScreenHeader } from "@/components/ScreenHeader";
 import { matches } from "@/data/matches";
-import { useAuth } from "../contexts/AuthContext";
-import { usePredictions } from "../contexts/PredictionsContext";
-import { useUserProfile } from "../contexts/UserProfileContext";
-import { calculatePredictionStats } from "../utils/predictionStats";
+import { useAuth } from "@/contexts/AuthContext";
+import { usePredictions } from "@/contexts/PredictionsContext";
+import { useUserProfile } from "@/contexts/UserProfileContext";
+import { calculatePredictionStats } from "@/utils/predictionStats";
 
 function getInitials(name: string) {
   const words = name.trim().split(" ").filter(Boolean);

@@ -36,20 +36,6 @@ export default function TabLayout() {
       />
 
       <Tabs.Screen
-        name="tournaments"
-        options={{
-          title: 'Torneos',
-          tabBarIcon: ({ color, size }) => (
-            <MaterialCommunityIcons
-              name="trophy-outline"
-              size={size}
-              color={color}
-            />
-          ),
-        }}
-      />
-
-      <Tabs.Screen
         name="matches"
         options={{
           title: 'Partidos',
@@ -88,6 +74,27 @@ export default function TabLayout() {
               color={color}
             />
           ),
+        }}
+      />
+
+      <Tabs.Screen
+        name="profile"
+        options={{
+          title: 'Perfil',
+          tabBarIcon: ({ color, size }) => (
+            <MaterialCommunityIcons
+              name="account-circle-outline"
+              size={size}
+              color={color}
+            />
+          ),
+        }}
+      />
+
+      <Tabs.Screen
+        name="tournaments"
+        options={{
+          href: null,
         }}
       />
     </Tabs>
