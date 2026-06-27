@@ -33,15 +33,14 @@ function getInitials(name: string) {
 }
 
 export default function ProfileScreen() {
-  const { predictions, clearPredictions } = usePredictions();
+  const { predictions } = usePredictions();
   const { playerName, savePlayerName, resetPlayerName } = useUserProfile();
   const { user, signOut } = useAuth();
 
   const [nameInput, setNameInput] = useState(playerName);
 
   const stats = calculatePredictionStats(matches, predictions);
-  const totalPredictions = Object.keys(predictions).length;
-
+  
   useEffect(() => {
     setNameInput(playerName);
   }, [playerName]);
@@ -80,64 +79,7 @@ export default function ProfileScreen() {
     );
   }
 
-  function handleClearPredictions() {
-    if (totalPredictions === 0) {
-      Alert.alert(
-        "Sin predicciones",
-        "No tienes predicciones guardadas para borrar.",
-      );
-      return;
-    }
 
-    Alert.alert(
-      "Borrar predicciones",
-      "¿Estás seguro de que quieres borrar todas tus predicciones guardadas? Esta acción no se puede deshacer.",
-      [
-        {
-          text: "Cancelar",
-          style: "cancel",
-        },
-        {
-          text: "Borrar todo",
-          style: "destructive",
-          onPress: () => {
-            clearPredictions();
-
-            Alert.alert(
-              "Predicciones borradas",
-              "Todas tus predicciones fueron eliminadas.",
-            );
-          },
-        },
-      ],
-    );
-  }
-
-  function handleResetTestData() {
-    Alert.alert(
-      "Restablecer datos de prueba",
-      'Esto borrará todas tus predicciones y volverá tu nombre a "Jugador local". Esta acción no se puede deshacer.',
-      [
-        {
-          text: "Cancelar",
-          style: "cancel",
-        },
-        {
-          text: "Restablecer todo",
-          style: "destructive",
-          onPress: () => {
-            clearPredictions();
-            resetPlayerName();
-
-            Alert.alert(
-              "Datos restablecidos",
-              "Tus datos de prueba fueron reiniciados correctamente.",
-            );
-          },
-        },
-      ],
-    );
-  }
 
   function handleSignOut() {
     Alert.alert(
@@ -309,38 +251,6 @@ export default function ProfileScreen() {
               <Text style={styles.signOutButtonText}>Cerrar sesión</Text>
             </Pressable>
           </View>
-        </View>
-
-        <View style={styles.dangerCard}>
-          <Text style={styles.dangerTitle}>Zona de pruebas</Text>
-          <Text style={styles.dangerText}>
-            Usa estas opciones para reiniciar pruebas de la app sin
-            desinstalarla.
-          </Text>
-
-          <Pressable
-            style={({ pressed }) => [
-              styles.deleteButton,
-              pressed && styles.buttonPressed,
-            ]}
-            onPress={handleClearPredictions}
-          >
-            <Text style={styles.deleteButtonText}>
-              Borrar todas las predicciones
-            </Text>
-          </Pressable>
-
-          <Pressable
-            style={({ pressed }) => [
-              styles.resetAllButton,
-              pressed && styles.buttonPressed,
-            ]}
-            onPress={handleResetTestData}
-          >
-            <Text style={styles.resetAllButtonText}>
-              Restablecer datos de prueba
-            </Text>
-          </Pressable>
         </View>
 
         <View style={styles.infoCard}>
@@ -561,52 +471,6 @@ const styles = StyleSheet.create({
     marginTop: 12,
   },
   groupButtonText: {
-    fontSize: 15,
-    fontWeight: "900",
-    color: "#FFFFFF",
-  },
-  dangerCard: {
-    backgroundColor: "#FEF2F2",
-    borderRadius: 20,
-    padding: 18,
-    borderWidth: 1,
-    borderColor: "#FECACA",
-    marginBottom: 16,
-  },
-  dangerTitle: {
-    fontSize: 18,
-    fontWeight: "900",
-    color: "#991B1B",
-    marginBottom: 8,
-  },
-  dangerText: {
-    fontSize: 14,
-    lineHeight: 20,
-    fontWeight: "600",
-    color: "#7F1D1D",
-    marginBottom: 14,
-  },
-  deleteButton: {
-    height: 50,
-    borderRadius: 14,
-    backgroundColor: "#991B1B",
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  deleteButtonText: {
-    fontSize: 15,
-    fontWeight: "900",
-    color: "#FFFFFF",
-  },
-  resetAllButton: {
-    height: 50,
-    borderRadius: 14,
-    backgroundColor: "#7F1D1D",
-    alignItems: "center",
-    justifyContent: "center",
-    marginTop: 10,
-  },
-  resetAllButtonText: {
     fontSize: 15,
     fontWeight: "900",
     color: "#FFFFFF",
