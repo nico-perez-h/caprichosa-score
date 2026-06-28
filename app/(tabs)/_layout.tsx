@@ -1,6 +1,7 @@
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { Redirect, Tabs } from 'expo-router';
-import { useEffect, useState } from 'react';
+import { useFocusEffect } from '@react-navigation/native';
+import { useCallback, useEffect, useState } from 'react';
 import { ActivityIndicator, StyleSheet, Text, View } from 'react-native';
 
 import { useAuth } from '@/contexts/AuthContext';
@@ -11,29 +12,35 @@ export default function TabLayout() {
   const [hasGroup, setHasGroup] = useState<boolean | null>(null);
   const [isCheckingGroup, setIsCheckingGroup] = useState(true);
 
-  useEffect(() => {
-    async function checkGroup() {
-      if (!session) {
-        setHasGroup(null);
-        setIsCheckingGroup(false);
-        return;
-      }
-
-      try {
-        setIsCheckingGroup(true);
-
-        const currentGroup = await getCurrentGroup();
-
-        setHasGroup(Boolean(currentGroup));
-      } catch {
-        setHasGroup(false);
-      } finally {
-        setIsCheckingGroup(false);
-      }
+  const checkGroup = useCallback(async () => {
+    if (!session) {
+      setHasGroup(null);
+      setIsCheckingGroup(false);
+      return;
     }
 
-    checkGroup();
+    try {
+      setIsCheckingGroup(true);
+
+      const currentGroup = await getCurrentGroup();
+
+      setHasGroup(Boolean(currentGroup));
+    } catch {
+      setHasGroup(false);
+    } finally {
+      setIsCheckingGroup(false);
+    }
   }, [session]);
+
+  useEffect(() => {
+    checkGroup();
+  }, [checkGroup]);
+
+  useFocusEffect(
+    useCallback(() => {
+      checkGroup();
+    }, [checkGroup])
+  );
 
   if (isLoadingSession || isCheckingGroup) {
     return (

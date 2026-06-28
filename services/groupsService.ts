@@ -470,3 +470,56 @@ export async function createGroup(input: CreateGroupInput): Promise<Group> {
 
   return mapSupabaseGroupToAppGroup(group as SupabaseGroup);
 }
+export async function leaveGroup(groupId: string) {
+  const userId = await getCurrentUserId();
+
+  const { error: memberError } = await supabase
+    .from('group_members')
+    .delete()
+    .eq('group_id', groupId)
+    .eq('user_id', userId);
+
+  if (memberError) {
+    throw new Error(memberError.message);
+  }
+
+  const activeGroupId = await getActiveGroupId(userId);
+
+  if (activeGroupId === groupId) {
+    const latestMembership = await getLatestMembership(userId);
+
+    const { error: profileError } = await supabase
+      .from('profiles')
+      .update({
+        active_group_id: latestMembership?.group.id ?? null,
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', userId);
+
+    if (profileError) {
+      throw new Error(profileError.message);
+    }
+  }
+}
+
+export async function deleteGroup(groupId: string) {
+  const userId = await getCurrentUserId();
+
+  const membership = await getMembershipByGroupId({
+    userId,
+    groupId,
+  });
+
+  if (!membership || membership.role !== 'admin') {
+    throw new Error('Solo el administrador puede eliminar este grupo.');
+  }
+
+  const { error } = await supabase
+    .from('groups')
+    .delete()
+    .eq('id', groupId);
+
+  if (error) {
+    throw new Error(error.message);
+  }
+}

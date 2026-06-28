@@ -10,17 +10,19 @@ import {
   Text,
   View,
 } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
 import { useFocusEffect } from "@react-navigation/native";
+import { SafeAreaView } from "react-native-safe-area-context";
 
 import { ScreenHeader } from "@/components/ScreenHeader";
+import { useAuth } from "@/contexts/AuthContext";
 import {
   getGroupAnnouncements,
   type GroupAnnouncement,
 } from "@/services/groupAdjustmentsService";
-
 import {
+  deleteGroup,
   getCurrentGroupData,
+  leaveGroup,
   type CurrentGroupData,
 } from "@/services/groupsService";
 
@@ -39,9 +41,12 @@ function formatAnnouncementDate(dateText: string) {
 }
 
 export default function GroupScreen() {
+  const { signOut } = useAuth();
+
   const [groupData, setGroupData] = useState<CurrentGroupData | null>(null);
   const [announcements, setAnnouncements] = useState<GroupAnnouncement[]>([]);
   const [isLoadingGroup, setIsLoadingGroup] = useState(true);
+  const [isLeavingOrDeleting, setIsLeavingOrDeleting] = useState(false);
 
   async function loadGroup() {
     try {
@@ -53,7 +58,7 @@ export default function GroupScreen() {
 
       if (loadedGroupData) {
         const loadedAnnouncements = await getGroupAnnouncements(
-          loadedGroupData.group.id,
+          loadedGroupData.group.id
         );
 
         setAnnouncements(loadedAnnouncements);
@@ -73,7 +78,7 @@ export default function GroupScreen() {
   useFocusEffect(
     useCallback(() => {
       loadGroup();
-    }, []),
+    }, [])
   );
 
   async function handleCopyGroupCode() {
@@ -85,8 +90,126 @@ export default function GroupScreen() {
 
     Alert.alert(
       "Código copiado",
-      `El código ${groupData.group.inviteCode} fue copiado correctamente.`,
+      `El código ${groupData.group.inviteCode} fue copiado correctamente.`
     );
+  }
+
+  function handleLeaveGroup() {
+    if (!groupData) {
+      return;
+    }
+
+    Alert.alert(
+      "Salir del grupo",
+      `¿Seguro que quieres salir del grupo ${groupData.group.name}?`,
+      [
+        {
+          text: "Cancelar",
+          style: "cancel",
+        },
+        {
+          text: "Salir",
+          style: "destructive",
+          onPress: async () => {
+            try {
+              setIsLeavingOrDeleting(true);
+
+              await leaveGroup(groupData.group.id);
+
+              Alert.alert(
+                "Saliste del grupo",
+                "Ya no perteneces a este grupo."
+              );
+
+              await loadGroup();
+            } catch (error) {
+              const errorMessage =
+                error instanceof Error
+                  ? error.message
+                  : "No se pudo salir del grupo.";
+
+              Alert.alert("Error", errorMessage);
+            } finally {
+              setIsLeavingOrDeleting(false);
+            }
+          },
+        },
+      ]
+    );
+  }
+
+  function handleDeleteGroup() {
+    if (!groupData) {
+      return;
+    }
+
+    Alert.alert(
+      "Eliminar grupo",
+      `¿Seguro que quieres eliminar el grupo ${groupData.group.name}? Esta acción eliminará integrantes, predicciones, ajustes y anuncios de este grupo.`,
+      [
+        {
+          text: "Cancelar",
+          style: "cancel",
+        },
+        {
+          text: "Eliminar",
+          style: "destructive",
+          onPress: async () => {
+            try {
+              setIsLeavingOrDeleting(true);
+
+              await deleteGroup(groupData.group.id);
+
+              Alert.alert(
+                "Grupo eliminado",
+                "El grupo fue eliminado correctamente."
+              );
+
+              setGroupData(null);
+              setAnnouncements([]);
+
+              router.replace("/group" as never);
+            } catch (error) {
+              const errorMessage =
+                error instanceof Error
+                  ? error.message
+                  : "No se pudo eliminar el grupo.";
+
+              Alert.alert("Error", errorMessage);
+            } finally {
+              setIsLeavingOrDeleting(false);
+            }
+          },
+        },
+      ]
+    );
+  }
+
+  function handleSignOut() {
+    Alert.alert("Cerrar sesión", "¿Seguro que quieres cerrar sesión?", [
+      {
+        text: "Cancelar",
+        style: "cancel",
+      },
+      {
+        text: "Cerrar sesión",
+        style: "destructive",
+        onPress: async () => {
+          try {
+            await signOut();
+
+            router.replace("/auth/login" as never);
+          } catch (error) {
+            const errorMessage =
+              error instanceof Error
+                ? error.message
+                : "No se pudo cerrar sesión.";
+
+            Alert.alert("Error", errorMessage);
+          }
+        },
+      },
+    ]);
   }
 
   if (isLoadingGroup) {
@@ -108,13 +231,9 @@ export default function GroupScreen() {
           contentContainerStyle={styles.content}
           showsVerticalScrollIndicator={false}
         >
-          <Pressable style={styles.backButton} onPress={() => router.back()}>
-            <Text style={styles.backButtonText}>← Volver</Text>
-          </Pressable>
-
           <ScreenHeader
             title="Grupo de amigos"
-            subtitle="Crea un grupo o únete con un código."
+            subtitle="Crea un grupo o únete con un código para entrar a la app."
           />
 
           <View style={styles.emptyCard}>
@@ -143,6 +262,16 @@ export default function GroupScreen() {
             >
               <Text style={styles.secondaryButtonText}>Unirse con código</Text>
             </Pressable>
+
+            <Pressable
+              style={({ pressed }) => [
+                styles.logoutButton,
+                pressed && styles.buttonPressed,
+              ]}
+              onPress={handleSignOut}
+            >
+              <Text style={styles.logoutButtonText}>Cerrar sesión</Text>
+            </Pressable>
           </View>
         </ScrollView>
       </SafeAreaView>
@@ -158,8 +287,11 @@ export default function GroupScreen() {
         contentContainerStyle={styles.content}
         showsVerticalScrollIndicator={false}
       >
-        <Pressable style={styles.backButton} onPress={() => router.back()}>
-          <Text style={styles.backButtonText}>← Volver</Text>
+        <Pressable
+          style={styles.backButton}
+          onPress={() => router.replace("/(tabs)" as never)}
+        >
+          <Text style={styles.backButtonText}>← Volver a la app</Text>
         </Pressable>
 
         <ScreenHeader
@@ -193,6 +325,7 @@ export default function GroupScreen() {
           >
             <Text style={styles.copyButtonText}>Copiar código</Text>
           </Pressable>
+
           <View style={styles.groupActionsRow}>
             <Pressable
               style={({ pressed }) => [
@@ -312,6 +445,36 @@ export default function GroupScreen() {
               </View>
             ))
           )}
+        </View>
+
+        <View style={styles.dangerCard}>
+          <Text style={styles.dangerTitle}>
+            {isAdmin ? "Eliminar grupo" : "Salir del grupo"}
+          </Text>
+
+          <Text style={styles.dangerText}>
+            {isAdmin
+              ? "Como administrador puedes eliminar este grupo completo. Esta acción no se puede deshacer."
+              : "Puedes salir de este grupo. Si luego quieres volver, necesitarás el código de invitación."}
+          </Text>
+
+          <Pressable
+            style={({ pressed }) => [
+              styles.dangerButton,
+              pressed && styles.buttonPressed,
+              isLeavingOrDeleting && styles.disabledButton,
+            ]}
+            onPress={isAdmin ? handleDeleteGroup : handleLeaveGroup}
+            disabled={isLeavingOrDeleting}
+          >
+            <Text style={styles.dangerButtonText}>
+              {isLeavingOrDeleting
+                ? "Procesando..."
+                : isAdmin
+                  ? "Eliminar grupo"
+                  : "Salir del grupo"}
+            </Text>
+          </Pressable>
         </View>
 
         <View style={styles.infoCard}>
@@ -521,6 +684,21 @@ const styles = StyleSheet.create({
     fontWeight: "900",
     color: "#111827",
   },
+  logoutButton: {
+    height: 52,
+    borderRadius: 14,
+    backgroundColor: "#FEF2F2",
+    alignItems: "center",
+    justifyContent: "center",
+    marginTop: 10,
+    borderWidth: 1,
+    borderColor: "#FECACA",
+  },
+  logoutButtonText: {
+    fontSize: 16,
+    fontWeight: "900",
+    color: "#991B1B",
+  },
   statsGrid: {
     flexDirection: "row",
     gap: 12,
@@ -647,6 +825,42 @@ const styles = StyleSheet.create({
     lineHeight: 19,
     fontWeight: "600",
     color: "#6B7280",
+  },
+  dangerCard: {
+    backgroundColor: "#FEF2F2",
+    borderRadius: 20,
+    padding: 18,
+    borderWidth: 1,
+    borderColor: "#FECACA",
+    marginBottom: 16,
+  },
+  dangerTitle: {
+    fontSize: 17,
+    fontWeight: "900",
+    color: "#991B1B",
+    marginBottom: 6,
+  },
+  dangerText: {
+    fontSize: 14,
+    lineHeight: 20,
+    fontWeight: "600",
+    color: "#7F1D1D",
+    marginBottom: 12,
+  },
+  dangerButton: {
+    height: 48,
+    borderRadius: 14,
+    backgroundColor: "#991B1B",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  dangerButtonText: {
+    fontSize: 15,
+    fontWeight: "900",
+    color: "#FFFFFF",
+  },
+  disabledButton: {
+    opacity: 0.6,
   },
   infoCard: {
     backgroundColor: "#EFF6FF",
