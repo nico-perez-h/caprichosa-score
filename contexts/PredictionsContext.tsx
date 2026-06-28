@@ -7,6 +7,13 @@ import {
   type ReactNode,
 } from 'react';
 
+import {
+  deleteUserPrediction,
+  getUserPredictions,
+  upsertUserPrediction,
+} from '@/services/predictionsService';
+import { useAuth } from './AuthContext';
+
 const PREDICTIONS_STORAGE_KEY = 'caprichosa-score-predictions';
 
 export type Prediction = {
@@ -19,10 +26,11 @@ type PredictionsByMatch = Record<string, Prediction>;
 
 type PredictionsContextValue = {
   predictions: PredictionsByMatch;
+  isLoadingPredictions: boolean;
   getPrediction: (matchId: string) => Prediction | null;
-  savePrediction: (prediction: Prediction) => void;
-  deletePrediction: (matchId: string) => void;
-  clearPredictions: () => void;
+  savePrediction: (prediction: Prediction) => Promise<void>;
+  deletePrediction: (matchId: string) => Promise<void>;
+  clearPredictions: () => Promise<void>;
 };
 
 const PredictionsContext = createContext<PredictionsContextValue | undefined>(
@@ -33,12 +41,42 @@ type PredictionsProviderProps = {
   children: ReactNode;
 };
 
+function mapPredictionsListToRecord(predictionsList: Prediction[]) {
+  return predictionsList.reduce<PredictionsByMatch>((accumulator, prediction) => {
+    accumulator[prediction.matchId] = prediction;
+
+    return accumulator;
+  }, {});
+}
+
 export function PredictionsProvider({ children }: PredictionsProviderProps) {
+  const { user, isLoadingSession } = useAuth();
+
   const [predictions, setPredictions] = useState<PredictionsByMatch>({});
+  const [isLoadingPredictions, setIsLoadingPredictions] = useState(true);
 
   useEffect(() => {
     async function loadPredictions() {
+      if (isLoadingSession) {
+        return;
+      }
+
+      setIsLoadingPredictions(true);
+
       try {
+        if (user) {
+          const userPredictions = await getUserPredictions(user.id);
+
+          const mappedPredictions = userPredictions.map((prediction) => ({
+            matchId: prediction.match_id,
+            homeScore: prediction.home_score,
+            awayScore: prediction.away_score,
+          }));
+
+          setPredictions(mapPredictionsListToRecord(mappedPredictions));
+          return;
+        }
+
         const storedPredictions = await AsyncStorage.getItem(
           PREDICTIONS_STORAGE_KEY
         );
@@ -49,16 +87,22 @@ export function PredictionsProvider({ children }: PredictionsProviderProps) {
           ) as PredictionsByMatch;
 
           setPredictions(parsedPredictions);
+          return;
         }
-      } catch {
+
         setPredictions({});
+      } catch (error) {
+        console.log('Error cargando predicciones:', error);
+        setPredictions({});
+      } finally {
+        setIsLoadingPredictions(false);
       }
     }
 
     loadPredictions();
-  }, []);
+  }, [user, isLoadingSession]);
 
-  function persistPredictions(updatedPredictions: PredictionsByMatch) {
+  function persistLocalPredictions(updatedPredictions: PredictionsByMatch) {
     AsyncStorage.setItem(
       PREDICTIONS_STORAGE_KEY,
       JSON.stringify(updatedPredictions)
@@ -69,20 +113,31 @@ export function PredictionsProvider({ children }: PredictionsProviderProps) {
     return predictions[matchId] ?? null;
   }
 
-  function savePrediction(prediction: Prediction) {
+  async function savePrediction(prediction: Prediction) {
     setPredictions((currentPredictions) => {
       const updatedPredictions = {
         ...currentPredictions,
         [prediction.matchId]: prediction,
       };
 
-      persistPredictions(updatedPredictions);
+      if (!user) {
+        persistLocalPredictions(updatedPredictions);
+      }
 
       return updatedPredictions;
     });
+
+    if (user) {
+      await upsertUserPrediction({
+        userId: user.id,
+        matchId: prediction.matchId,
+        homeScore: prediction.homeScore,
+        awayScore: prediction.awayScore,
+      });
+    }
   }
 
-  function deletePrediction(matchId: string) {
+  async function deletePrediction(matchId: string) {
     setPredictions((currentPredictions) => {
       const updatedPredictions = {
         ...currentPredictions,
@@ -90,21 +145,44 @@ export function PredictionsProvider({ children }: PredictionsProviderProps) {
 
       delete updatedPredictions[matchId];
 
-      persistPredictions(updatedPredictions);
+      if (!user) {
+        persistLocalPredictions(updatedPredictions);
+      }
 
       return updatedPredictions;
     });
+
+    if (user) {
+      await deleteUserPrediction({
+        userId: user.id,
+        matchId,
+      });
+    }
   }
 
-  function clearPredictions() {
+  async function clearPredictions() {
     setPredictions({});
-    AsyncStorage.removeItem(PREDICTIONS_STORAGE_KEY).catch(() => {});
+
+    if (user) {
+      const deletePromises = Object.keys(predictions).map((matchId) =>
+        deleteUserPrediction({
+          userId: user.id,
+          matchId,
+        })
+      );
+
+      await Promise.all(deletePromises);
+      return;
+    }
+
+    await AsyncStorage.removeItem(PREDICTIONS_STORAGE_KEY);
   }
 
   return (
     <PredictionsContext.Provider
       value={{
         predictions,
+        isLoadingPredictions,
         getPrediction,
         savePrediction,
         deletePrediction,
