@@ -27,25 +27,32 @@ export default function CreateGroupScreen() {
       return;
     }
 
-    setIsCreating(true);
+    try {
+      setIsCreating(true);
 
-    const createdGroup = await createGroup({
-      name: cleanGroupName,
-      description: groupDescription,
-    });
+      const createdGroup = await createGroup({
+        name: cleanGroupName,
+        description: groupDescription,
+      });
 
-    setIsCreating(false);
+      Alert.alert(
+        'Grupo creado',
+        `Tu grupo "${createdGroup.name}" fue creado con el código ${createdGroup.inviteCode}. Comparte ese código con tus amigos para que puedan unirse.`,
+        [
+          {
+            text: 'Ver grupo',
+            onPress: () => router.replace('/group' as never),
+          },
+        ]
+      );
+    } catch (error) {
+      const errorMessage =
+        error instanceof Error ? error.message : 'No se pudo crear el grupo.';
 
-    Alert.alert(
-      'Grupo creado',
-      `Tu grupo "${createdGroup.name}" fue creado con el código ${createdGroup.inviteCode}.`,
-      [
-        {
-          text: 'Ver grupo',
-          onPress: () => router.replace('/group' as never),
-        },
-      ]
-    );
+      Alert.alert('Error al crear grupo', errorMessage);
+    } finally {
+      setIsCreating(false);
+    }
   }
 
   return (
@@ -62,7 +69,7 @@ export default function CreateGroupScreen() {
 
         <ScreenHeader
           title="Crear grupo"
-          subtitle="Crea un grupo de prueba para competir con tus amigos."
+          subtitle="Crea un grupo para competir con tus amigos o familia."
         />
 
         <View style={styles.card}>
@@ -104,16 +111,16 @@ export default function CreateGroupScreen() {
           </Pressable>
 
           <Text style={styles.helperText}>
-            Por ahora este grupo es simulado. Luego lo guardaremos en Supabase
-            con integrantes, código real e invitaciones.
+            Al crear el grupo, tú serás el administrador y también podrás
+            participar con tus propias predicciones.
           </Text>
         </View>
 
         <View style={styles.infoCard}>
-          <Text style={styles.infoTitle}>Cómo funcionará después</Text>
+          <Text style={styles.infoTitle}>Código del grupo</Text>
           <Text style={styles.infoText}>
-            Más adelante podrás crear un grupo real, compartir el código con tus
-            amigos y ver un ranking separado para ese grupo.
+            Después de crear el grupo recibirás un código único. Tus amigos
+            podrán usarlo para unirse desde la app.
           </Text>
         </View>
       </ScrollView>

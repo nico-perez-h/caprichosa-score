@@ -1,64 +1,125 @@
-import * as Clipboard from 'expo-clipboard';
-import { router } from 'expo-router';
+import * as Clipboard from "expo-clipboard";
+import { router } from "expo-router";
+import { useCallback, useState } from "react";
 import {
+  ActivityIndicator,
   Alert,
   Pressable,
   ScrollView,
   StyleSheet,
   Text,
   View,
-} from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+} from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
+import { useFocusEffect } from "@react-navigation/native";
 
-import { ScreenHeader } from '@/components/ScreenHeader';
-import { matches } from '@/data/matches';
-import { mockGroup } from '@/data/mockGroup';
-import { mockRankingPlayers } from '@/data/mockRankingPlayers';
-import { usePredictions } from '../contexts/PredictionsContext';
-import { useUserProfile } from '../contexts/UserProfileContext';
-import { calculatePredictionStats } from '../utils/predictionStats';
+import { ScreenHeader } from "@/components/ScreenHeader";
+import {
+  getCurrentGroupData,
+  type CurrentGroupData,
+} from "@/services/groupsService";
 
 export default function GroupScreen() {
-  const { predictions } = usePredictions();
-  const { playerName } = useUserProfile();
+  const [groupData, setGroupData] = useState<CurrentGroupData | null>(null);
+  const [isLoadingGroup, setIsLoadingGroup] = useState(true);
 
-  const stats = calculatePredictionStats(matches, predictions);
+  async function loadGroup() {
+    try {
+      setIsLoadingGroup(true);
 
-  const groupMembers = [
-    {
-      id: 'current-user',
-      name: playerName,
-      points: stats.totalPoints,
-      predictions: stats.totalPredictions,
-      isCurrentUser: true,
-    },
-    ...mockRankingPlayers.map((player) => ({
-      id: player.id,
-      name: player.name,
-      points: player.points,
-      predictions: player.predictions,
-      isCurrentUser: false,
-    })),
-  ].sort((firstPlayer, secondPlayer) => secondPlayer.points - firstPlayer.points);
+      const loadedGroupData = await getCurrentGroupData();
 
-  const totalGroupPoints = groupMembers.reduce(
-    (total, member) => total + member.points,
-    0
-  );
+      setGroupData(loadedGroupData);
+    } catch (error) {
+      const errorMessage =
+        error instanceof Error ? error.message : "No se pudo cargar el grupo.";
 
-  const totalGroupPredictions = groupMembers.reduce(
-    (total, member) => total + member.predictions,
-    0
+      Alert.alert("Error", errorMessage);
+    } finally {
+      setIsLoadingGroup(false);
+    }
+  }
+
+  useFocusEffect(
+    useCallback(() => {
+      loadGroup();
+    }, []),
   );
 
   async function handleCopyGroupCode() {
-    await Clipboard.setStringAsync(mockGroup.inviteCode);
+    if (!groupData) {
+      return;
+    }
+
+    await Clipboard.setStringAsync(groupData.group.inviteCode);
 
     Alert.alert(
-      'Código copiado',
-      `El código ${mockGroup.inviteCode} fue copiado correctamente.`
+      "Código copiado",
+      `El código ${groupData.group.inviteCode} fue copiado correctamente.`,
     );
   }
+
+  if (isLoadingGroup) {
+    return (
+      <SafeAreaView style={styles.screen}>
+        <View style={styles.loadingContent}>
+          <ActivityIndicator color="#111827" />
+          <Text style={styles.loadingText}>Cargando grupo...</Text>
+        </View>
+      </SafeAreaView>
+    );
+  }
+
+  if (!groupData) {
+    return (
+      <SafeAreaView style={styles.screen}>
+        <ScrollView
+          style={styles.scroll}
+          contentContainerStyle={styles.content}
+          showsVerticalScrollIndicator={false}
+        >
+          <Pressable style={styles.backButton} onPress={() => router.back()}>
+            <Text style={styles.backButtonText}>← Volver</Text>
+          </Pressable>
+
+          <ScreenHeader
+            title="Grupo de amigos"
+            subtitle="Crea un grupo o únete con un código."
+          />
+
+          <View style={styles.emptyCard}>
+            <Text style={styles.emptyTitle}>Todavía no tienes grupo</Text>
+            <Text style={styles.emptyText}>
+              Crea un grupo para competir con tus amigos o usa un código para
+              unirte a uno existente.
+            </Text>
+
+            <Pressable
+              style={({ pressed }) => [
+                styles.primaryButton,
+                pressed && styles.buttonPressed,
+              ]}
+              onPress={() => router.push("/create-group" as never)}
+            >
+              <Text style={styles.primaryButtonText}>Crear grupo</Text>
+            </Pressable>
+
+            <Pressable
+              style={({ pressed }) => [
+                styles.secondaryButton,
+                pressed && styles.buttonPressed,
+              ]}
+              onPress={() => router.push("/join-group" as never)}
+            >
+              <Text style={styles.secondaryButtonText}>Unirse con código</Text>
+            </Pressable>
+          </View>
+        </ScrollView>
+      </SafeAreaView>
+    );
+  }
+
+  const isAdmin = groupData.role === "admin";
 
   return (
     <SafeAreaView style={styles.screen}>
@@ -77,12 +138,20 @@ export default function GroupScreen() {
         />
 
         <View style={styles.groupCard}>
-          <Text style={styles.groupLabel}>Grupo de prueba</Text>
-          <Text style={styles.groupName}>{mockGroup.name}</Text>
+          <Text style={styles.groupLabel}>
+            {isAdmin ? "Administrador" : "Miembro"}
+          </Text>
+          <Text style={styles.groupName}>{groupData.group.name}</Text>
+
+          {groupData.group.description ? (
+            <Text style={styles.groupDescription}>
+              {groupData.group.description}
+            </Text>
+          ) : null}
 
           <View style={styles.codeBox}>
-            <Text style={styles.codeLabel}>Código de invitación</Text>
-            <Text style={styles.codeText}>{mockGroup.inviteCode}</Text>
+            <Text style={styles.codeLabel}>Código del grupo</Text>
+            <Text style={styles.codeText}>{groupData.group.inviteCode}</Text>
           </View>
 
           <Pressable
@@ -94,51 +163,37 @@ export default function GroupScreen() {
           >
             <Text style={styles.copyButtonText}>Copiar código</Text>
           </Pressable>
+          <View style={styles.groupActionsRow}>
+            <Pressable
+              style={({ pressed }) => [
+                styles.groupActionButton,
+                pressed && styles.buttonPressed,
+              ]}
+              onPress={() => router.push("/create-group" as never)}
+            >
+              <Text style={styles.groupActionButtonText}>Crear otro</Text>
+            </Pressable>
 
-          <Pressable
-            style={({ pressed }) => [
-              styles.joinButton,
-              pressed && styles.buttonPressed,
-            ]}
-            onPress={() => router.push('/join-group' as never)}
-          >
-            <Text style={styles.joinButtonText}>Unirse con código</Text>
-          </Pressable>
-
-          <Pressable
-            style={({ pressed }) => [
-              styles.createGroupButton,
-              pressed && styles.buttonPressed,
-            ]}
-            onPress={() => router.push('/create-group' as never)}
-          >
-            <Text style={styles.createGroupButtonText}>Crear nuevo grupo</Text>
-          </Pressable>
-
-          <Text style={styles.groupDescription}>
-            {mockGroup.description} Más adelante este código servirá para invitar
-            amigos reales al grupo.
-          </Text>
+            <Pressable
+              style={({ pressed }) => [
+                styles.groupActionButton,
+                pressed && styles.buttonPressed,
+              ]}
+              onPress={() => router.push("/join-group" as never)}
+            >
+              <Text style={styles.groupActionButtonText}>Unirme a otro</Text>
+            </Pressable>
+          </View>
         </View>
 
         <View style={styles.statsGrid}>
           <View style={styles.statCard}>
-            <Text style={styles.statValue}>{groupMembers.length}</Text>
+            <Text style={styles.statValue}>{groupData.members.length}</Text>
             <Text style={styles.statLabel}>Integrantes</Text>
           </View>
 
           <View style={styles.statCard}>
-            <Text style={styles.statValue}>{totalGroupPoints}</Text>
-            <Text style={styles.statLabel}>Puntos del grupo</Text>
-          </View>
-
-          <View style={styles.statCard}>
-            <Text style={styles.statValue}>{totalGroupPredictions}</Text>
-            <Text style={styles.statLabel}>Predicciones</Text>
-          </View>
-
-          <View style={styles.statCard}>
-            <Text style={styles.statValue}>{mockGroup.activeTournaments}</Text>
+            <Text style={styles.statValue}>1</Text>
             <Text style={styles.statLabel}>Torneo activo</Text>
           </View>
         </View>
@@ -146,60 +201,26 @@ export default function GroupScreen() {
         <View style={styles.membersCard}>
           <Text style={styles.cardTitle}>Integrantes</Text>
 
-          {groupMembers.map((member, index) => (
-            <View
-              key={member.id}
-              style={[
-                styles.memberRow,
-                member.isCurrentUser && styles.currentUserRow,
-              ]}
-            >
-              <Text
-                style={[
-                  styles.memberPosition,
-                  member.isCurrentUser && styles.currentUserText,
-                ]}
-              >
-                #{index + 1}
-              </Text>
+          {groupData.members.map((member, index) => (
+            <View key={member.id} style={styles.memberRow}>
+              <Text style={styles.memberPosition}>#{index + 1}</Text>
 
               <View style={styles.memberInfo}>
-                <Text
-                  style={[
-                    styles.memberName,
-                    member.isCurrentUser && styles.currentUserText,
-                  ]}
-                >
-                  {member.name}
-                </Text>
+                <Text style={styles.memberName}>{member.playerName}</Text>
 
-                <Text
-                  style={[
-                    styles.memberMeta,
-                    member.isCurrentUser && styles.currentUserMetaText,
-                  ]}
-                >
-                  {member.predictions} predicciones
+                <Text style={styles.memberMeta}>
+                  {member.role === "admin" ? "Administrador" : "Miembro"}
                 </Text>
               </View>
-
-              <Text
-                style={[
-                  styles.memberPoints,
-                  member.isCurrentUser && styles.currentUserText,
-                ]}
-              >
-                {member.points} pts
-              </Text>
             </View>
           ))}
         </View>
 
         <View style={styles.infoCard}>
-          <Text style={styles.infoTitle}>Próximamente</Text>
+          <Text style={styles.infoTitle}>Grupo conectado</Text>
           <Text style={styles.infoText}>
-            Luego podremos reemplazar este archivo de prueba por datos reales de
-            Supabase: grupos, integrantes, códigos, invitaciones y rankings.
+            Este grupo ya está guardado en Supabase. El siguiente paso será
+            calcular el ranking real con las predicciones de sus integrantes.
           </Text>
         </View>
       </ScrollView>
@@ -210,7 +231,7 @@ export default function GroupScreen() {
 const styles = StyleSheet.create({
   screen: {
     flex: 1,
-    backgroundColor: '#F9FAFB',
+    backgroundColor: "#F9FAFB",
   },
   scroll: {
     flex: 1,
@@ -220,202 +241,233 @@ const styles = StyleSheet.create({
     paddingTop: 24,
     paddingBottom: 32,
   },
+  loadingContent: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    paddingHorizontal: 24,
+  },
+  loadingText: {
+    marginTop: 12,
+    fontSize: 15,
+    fontWeight: "700",
+    color: "#6B7280",
+  },
   backButton: {
-    alignSelf: 'flex-start',
+    alignSelf: "flex-start",
     marginBottom: 20,
   },
   backButtonText: {
     fontSize: 16,
-    fontWeight: '700',
-    color: '#111827',
+    fontWeight: "700",
+    color: "#111827",
   },
   groupCard: {
-    backgroundColor: '#111827',
+    backgroundColor: "#111827",
     borderRadius: 24,
     padding: 20,
     marginBottom: 16,
   },
   groupLabel: {
     fontSize: 13,
-    fontWeight: '800',
-    color: '#D1D5DB',
+    fontWeight: "800",
+    color: "#D1D5DB",
     marginBottom: 6,
   },
   groupName: {
     fontSize: 26,
-    fontWeight: '900',
-    color: '#FFFFFF',
+    fontWeight: "900",
+    color: "#FFFFFF",
+  },
+  groupDescription: {
+    marginTop: 8,
+    fontSize: 14,
+    lineHeight: 20,
+    fontWeight: "600",
+    color: "#D1D5DB",
   },
   codeBox: {
     marginTop: 16,
     borderRadius: 16,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: "#FFFFFF",
     padding: 14,
   },
   codeLabel: {
     fontSize: 12,
-    fontWeight: '900',
-    color: '#6B7280',
+    fontWeight: "900",
+    color: "#6B7280",
     marginBottom: 4,
   },
   codeText: {
     fontSize: 22,
-    fontWeight: '900',
-    color: '#111827',
+    fontWeight: "900",
+    color: "#111827",
     letterSpacing: 1,
   },
   copyButton: {
     height: 48,
     borderRadius: 14,
-    backgroundColor: '#FFFFFF',
-    alignItems: 'center',
-    justifyContent: 'center',
+    backgroundColor: "#FFFFFF",
+    alignItems: "center",
+    justifyContent: "center",
     marginTop: 12,
   },
   copyButtonText: {
     fontSize: 15,
-    fontWeight: '900',
-    color: '#111827',
+    fontWeight: "900",
+    color: "#111827",
   },
-  joinButton: {
-    height: 48,
-    borderRadius: 14,
-    backgroundColor: '#374151',
-    alignItems: 'center',
-    justifyContent: 'center',
+  groupActionsRow: {
+    flexDirection: "row",
+    gap: 10,
     marginTop: 10,
   },
-  joinButtonText: {
-    fontSize: 15,
-    fontWeight: '900',
-    color: '#FFFFFF',
-  },
-  createGroupButton: {
-    height: 48,
+  groupActionButton: {
+    flex: 1,
+    height: 46,
     borderRadius: 14,
-    backgroundColor: '#FFFFFF',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginTop: 10,
+    backgroundColor: "#374151",
+    alignItems: "center",
+    justifyContent: "center",
   },
-  createGroupButtonText: {
-    fontSize: 15,
-    fontWeight: '900',
-    color: '#111827',
+  groupActionButtonText: {
+    fontSize: 14,
+    fontWeight: "900",
+    color: "#FFFFFF",
   },
   buttonPressed: {
     opacity: 0.75,
     transform: [{ scale: 0.99 }],
   },
-  groupDescription: {
-    marginTop: 14,
+  emptyCard: {
+    backgroundColor: "#FFFFFF",
+    borderRadius: 22,
+    padding: 18,
+    borderWidth: 1,
+    borderColor: "#E5E7EB",
+  },
+  emptyTitle: {
+    fontSize: 20,
+    fontWeight: "900",
+    color: "#111827",
+    marginBottom: 8,
+  },
+  emptyText: {
     fontSize: 14,
     lineHeight: 20,
-    fontWeight: '600',
-    color: '#D1D5DB',
+    fontWeight: "600",
+    color: "#6B7280",
+    marginBottom: 16,
+  },
+  primaryButton: {
+    height: 52,
+    borderRadius: 14,
+    backgroundColor: "#111827",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  primaryButtonText: {
+    fontSize: 16,
+    fontWeight: "900",
+    color: "#FFFFFF",
+  },
+  secondaryButton: {
+    height: 52,
+    borderRadius: 14,
+    backgroundColor: "#F3F4F6",
+    alignItems: "center",
+    justifyContent: "center",
+    marginTop: 10,
+  },
+  secondaryButtonText: {
+    fontSize: 16,
+    fontWeight: "900",
+    color: "#111827",
   },
   statsGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
+    flexDirection: "row",
     gap: 12,
     marginBottom: 16,
   },
   statCard: {
-    width: '47.8%',
-    backgroundColor: '#FFFFFF',
+    flex: 1,
+    backgroundColor: "#FFFFFF",
     borderRadius: 18,
     padding: 16,
     borderWidth: 1,
-    borderColor: '#E5E7EB',
+    borderColor: "#E5E7EB",
   },
   statValue: {
     fontSize: 26,
-    fontWeight: '900',
-    color: '#111827',
+    fontWeight: "900",
+    color: "#111827",
   },
   statLabel: {
     marginTop: 4,
     fontSize: 13,
     lineHeight: 18,
-    fontWeight: '800',
-    color: '#6B7280',
+    fontWeight: "800",
+    color: "#6B7280",
   },
   membersCard: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: "#FFFFFF",
     borderRadius: 20,
     padding: 18,
     borderWidth: 1,
-    borderColor: '#E5E7EB',
+    borderColor: "#E5E7EB",
     marginBottom: 16,
   },
   cardTitle: {
     fontSize: 18,
-    fontWeight: '900',
-    color: '#111827',
+    fontWeight: "900",
+    color: "#111827",
     marginBottom: 10,
   },
   memberRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     gap: 12,
     paddingVertical: 12,
     borderTopWidth: 1,
-    borderTopColor: '#F3F4F6',
-  },
-  currentUserRow: {
-    backgroundColor: '#F9FAFB',
-    marginHorizontal: -8,
-    paddingHorizontal: 8,
-    borderRadius: 14,
+    borderTopColor: "#F3F4F6",
   },
   memberPosition: {
     width: 38,
     fontSize: 15,
-    fontWeight: '900',
-    color: '#9CA3AF',
+    fontWeight: "900",
+    color: "#9CA3AF",
   },
   memberInfo: {
     flex: 1,
   },
   memberName: {
     fontSize: 15,
-    fontWeight: '900',
-    color: '#111827',
+    fontWeight: "900",
+    color: "#111827",
   },
   memberMeta: {
     marginTop: 3,
     fontSize: 12,
-    fontWeight: '700',
-    color: '#6B7280',
-  },
-  memberPoints: {
-    fontSize: 15,
-    fontWeight: '900',
-    color: '#111827',
-  },
-  currentUserText: {
-    color: '#111827',
-  },
-  currentUserMetaText: {
-    color: '#374151',
+    fontWeight: "700",
+    color: "#6B7280",
   },
   infoCard: {
-    backgroundColor: '#EFF6FF',
+    backgroundColor: "#EFF6FF",
     borderRadius: 20,
     padding: 18,
     borderWidth: 1,
-    borderColor: '#BFDBFE',
+    borderColor: "#BFDBFE",
   },
   infoTitle: {
     fontSize: 16,
-    fontWeight: '900',
-    color: '#1D4ED8',
+    fontWeight: "900",
+    color: "#1D4ED8",
     marginBottom: 6,
   },
   infoText: {
     fontSize: 14,
     lineHeight: 20,
-    fontWeight: '600',
-    color: '#1E40AF',
+    fontWeight: "600",
+    color: "#1E40AF",
   },
 });
