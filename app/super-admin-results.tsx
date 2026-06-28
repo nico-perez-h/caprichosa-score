@@ -37,11 +37,15 @@ export default function SuperAdminResultsScreen() {
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
 
-  const upcomingMatches = useMemo(() => {
-    return matches.slice(0, 40);
+  const editableMatches = useMemo(() => {
+    return matches
+      .filter(
+        (match) => match.status === "Por jugar" || match.status === "En vivo",
+      )
+      .slice(0, 40);
   }, [matches]);
 
-  async function loadData() {
+  const loadData = useCallback(async () => {
     if (!user) {
       setIsLoading(false);
       return;
@@ -85,12 +89,12 @@ export default function SuperAdminResultsScreen() {
     } finally {
       setIsLoading(false);
     }
-  }
+  }, [user]);
 
   useFocusEffect(
     useCallback(() => {
       loadData();
-    }, [user]),
+    }, [loadData]),
   );
 
   function handleSelectMatch(match: Match) {
@@ -99,8 +103,8 @@ export default function SuperAdminResultsScreen() {
     );
 
     setSelectedMatch(match);
-    setHomeScore(existingResult?.home_score ?? match.actualHomeScore ?? 0);
-    setAwayScore(existingResult?.away_score ?? match.actualAwayScore ?? 0);
+    setHomeScore(existingResult?.home_score ?? 0);
+    setAwayScore(existingResult?.away_score ?? 0);
   }
 
   function decreaseHomeScore() {
@@ -121,7 +125,15 @@ export default function SuperAdminResultsScreen() {
 
   async function handleSaveResult() {
     if (!user || !selectedMatch) {
-      Alert.alert("Error", "Selecciona un partido para guardar resultado.");
+      Alert.alert("Error", "Selecciona un partido para guardar marcador.");
+      return;
+    }
+
+    if (selectedMatch.status === "Finalizado") {
+      Alert.alert(
+        "Partido finalizado",
+        "Este partido ya finalizó y no se puede modificar.",
+      );
       return;
     }
 
@@ -132,12 +144,12 @@ export default function SuperAdminResultsScreen() {
         matchId: selectedMatch.id,
         homeScore,
         awayScore,
-        status: "Finalizado",
+        status: selectedMatch.status,
         updatedBy: user.id,
       });
 
       Alert.alert(
-        "Resultado guardado",
+        "Marcador guardado",
         `${selectedMatch.homeTeam} ${homeScore} - ${awayScore} ${selectedMatch.awayTeam}`,
       );
 
@@ -146,7 +158,7 @@ export default function SuperAdminResultsScreen() {
       const errorMessage =
         error instanceof Error
           ? error.message
-          : "No se pudo guardar el resultado.";
+          : "No se pudo guardar el marcador.";
 
       Alert.alert("Error", errorMessage);
     } finally {
@@ -185,7 +197,7 @@ export default function SuperAdminResultsScreen() {
           <View style={styles.emptyCard}>
             <Text style={styles.emptyTitle}>Sin permiso</Text>
             <Text style={styles.emptyText}>
-              Tu cuenta no tiene permiso para cargar resultados manuales.
+              Tu cuenta no tiene permiso para cargar marcadores manuales.
             </Text>
           </View>
         </ScrollView>
@@ -206,11 +218,11 @@ export default function SuperAdminResultsScreen() {
 
         <ScreenHeader
           title="Panel interno"
-          subtitle="Carga resultados reales manualmente desde tu celular."
+          subtitle="Actualiza marcadores manualmente mientras el partido está por jugar o en vivo."
         />
 
         <View style={styles.selectedCard}>
-          <Text style={styles.cardTitle}>Resultado seleccionado</Text>
+          <Text style={styles.cardTitle}>Marcador seleccionado</Text>
 
           {selectedMatch ? (
             <>
@@ -219,7 +231,8 @@ export default function SuperAdminResultsScreen() {
               </Text>
 
               <Text style={styles.matchMeta}>
-                {selectedMatch.group} · {selectedMatch.date}
+                {selectedMatch.group} · {selectedMatch.date} ·{" "}
+                {selectedMatch.status}
               </Text>
 
               <View style={styles.scoreRow}>
@@ -310,86 +323,96 @@ export default function SuperAdminResultsScreen() {
                 disabled={isSaving}
               >
                 <Text style={styles.saveButtonText}>
-                  {isSaving ? "Guardando..." : "Guardar como finalizado"}
+                  {isSaving ? "Guardando..." : "Guardar marcador"}
                 </Text>
               </Pressable>
             </>
           ) : (
             <Text style={styles.emptyText}>
-              Selecciona un partido de la lista para cargar el resultado.
+              Selecciona un partido de la lista para cargar el marcador.
             </Text>
           )}
         </View>
 
         <View style={styles.matchesCard}>
-          <Text style={styles.cardTitle}>Partidos</Text>
+          <Text style={styles.cardTitle}>Partidos disponibles</Text>
 
-          {upcomingMatches.map((match) => {
-            const manualResult = manualResults.find(
-              (result) => result.match_id === match.id,
-            );
+          {editableMatches.length === 0 ? (
+            <View style={styles.emptyEditableBox}>
+              <Text style={styles.emptyTitle}>No hay partidos disponibles</Text>
+              <Text style={styles.emptyText}>
+                Solo aparecen partidos por jugar o en vivo. Los partidos
+                finalizados ya no se pueden editar.
+              </Text>
+            </View>
+          ) : (
+            editableMatches.map((match) => {
+              const manualResult = manualResults.find(
+                (result) => result.match_id === match.id,
+              );
 
-            const isSelected = selectedMatch?.id === match.id;
+              const isSelected = selectedMatch?.id === match.id;
 
-            return (
-              <Pressable
-                key={match.id}
-                style={({ pressed }) => [
-                  styles.matchRow,
-                  isSelected && styles.selectedMatchRow,
-                  pressed && styles.buttonPressed,
-                ]}
-                onPress={() => handleSelectMatch(match)}
-              >
-                <View style={styles.matchInfo}>
-                  <Text
-                    style={[
-                      styles.matchTeams,
-                      isSelected && styles.selectedMatchText,
-                    ]}
-                  >
-                    {match.homeTeam} vs {match.awayTeam}
-                  </Text>
-
-                  <Text
-                    style={[
-                      styles.matchSmallMeta,
-                      isSelected && styles.selectedMatchMetaText,
-                    ]}
-                  >
-                    {match.group} · {match.date}
-                  </Text>
-                </View>
-
-                {manualResult ? (
-                  <View
-                    style={[
-                      styles.resultPill,
-                      isSelected && styles.selectedResultPill,
-                    ]}
-                  >
+              return (
+                <Pressable
+                  key={match.id}
+                  style={({ pressed }) => [
+                    styles.matchRow,
+                    isSelected && styles.selectedMatchRow,
+                    pressed && styles.buttonPressed,
+                  ]}
+                  onPress={() => handleSelectMatch(match)}
+                >
+                  <View style={styles.matchInfo}>
                     <Text
                       style={[
-                        styles.resultPillText,
-                        isSelected && styles.selectedResultPillText,
+                        styles.matchTeams,
+                        isSelected && styles.selectedMatchText,
                       ]}
                     >
-                      {manualResult.home_score}-{manualResult.away_score}
+                      {match.homeTeam} vs {match.awayTeam}
+                    </Text>
+
+                    <Text
+                      style={[
+                        styles.matchSmallMeta,
+                        isSelected && styles.selectedMatchMetaText,
+                      ]}
+                    >
+                      {match.group} · {match.date} · {match.status}
                     </Text>
                   </View>
-                ) : (
-                  <Text
-                    style={[
-                      styles.selectText,
-                      isSelected && styles.selectedMatchText,
-                    ]}
-                  >
-                    Elegir
-                  </Text>
-                )}
-              </Pressable>
-            );
-          })}
+
+                  {manualResult ? (
+                    <View
+                      style={[
+                        styles.resultPill,
+                        isSelected && styles.selectedResultPill,
+                      ]}
+                    >
+                      <Text
+                        style={[
+                          styles.resultPillText,
+                          isSelected && styles.selectedResultPillText,
+                        ]}
+                      >
+                        {manualResult.home_score}-{manualResult.away_score}
+                      </Text>
+                    </View>
+                  ) : (
+                    <Text
+                      style={[
+                        styles.selectText,
+                        isSelected && styles.selectedMatchText,
+                      ]}
+                    >
+                      Elegir
+                    </Text>
+                  )}
+                </Pressable>
+              );
+            })
+          )}
         </View>
       </ScrollView>
     </SafeAreaView>
@@ -577,6 +600,13 @@ const styles = StyleSheet.create({
     backgroundColor: "#FFFFFF",
     borderRadius: 22,
     padding: 18,
+    borderWidth: 1,
+    borderColor: "#E5E7EB",
+  },
+  emptyEditableBox: {
+    borderRadius: 16,
+    backgroundColor: "#F9FAFB",
+    padding: 14,
     borderWidth: 1,
     borderColor: "#E5E7EB",
   },

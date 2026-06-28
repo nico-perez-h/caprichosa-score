@@ -36,6 +36,11 @@ export function calculatePredictionStats(
 
     totalPredictions += 1;
 
+    if (match.status !== 'Finalizado') {
+      pendingPredictions += 1;
+      return;
+    }
+
     if (
       match.actualHomeScore === undefined ||
       match.actualAwayScore === undefined

@@ -1,5 +1,6 @@
 import { matches } from '@/data/matches';
 import { getFootballDataTodayAppMatches } from '@/services/footballApiService';
+import { getManualMatchResults } from '@/services/matchResultsService';
 import type { Match } from '@/types/match';
 
 function wait(milliseconds: number) {
@@ -30,12 +31,20 @@ function getFinishedMatchesFromList(matchesList: Match[]) {
   return matchesList.filter((match) => match.status === 'Finalizado');
 }
 
+function removeApiScores(match: Match): Match {
+  return {
+    ...match,
+    actualHomeScore: undefined,
+    actualAwayScore: undefined,
+  };
+}
+
 async function getRealMatchesOrNull(): Promise<Match[] | null> {
   try {
     const realMatches = await getFootballDataTodayAppMatches();
 
     if (realMatches.length > 0) {
-      return realMatches;
+      return realMatches.map(removeApiScores);
     }
 
     return null;
@@ -51,19 +60,57 @@ async function getRealMatchesWithFallback(): Promise<Match[]> {
     return realMatches;
   }
 
-  return matches;
+  return matches.map(removeApiScores);
+}
+
+async function applyManualScores(matchesList: Match[]): Promise<Match[]> {
+  try {
+    const manualResults = await getManualMatchResults();
+
+    if (manualResults.length === 0) {
+      return matchesList;
+    }
+
+    return matchesList.map((match) => {
+      const manualResult = manualResults.find(
+        (result) => result.match_id === match.id
+      );
+
+      if (!manualResult) {
+        return match;
+      }
+
+      return {
+        ...match,
+        actualHomeScore: manualResult.home_score,
+        actualAwayScore: manualResult.away_score,
+
+        // Importante:
+        // El estado viene de la API, no del resultado manual.
+        status: match.status,
+      };
+    });
+  } catch {
+    return matchesList;
+  }
+}
+
+async function getMatchesWithManualScores(): Promise<Match[]> {
+  const allMatches = await getRealMatchesWithFallback();
+
+  return applyManualScores(allMatches);
 }
 
 export async function getMatches(): Promise<Match[]> {
   await wait(500);
 
-  return getRealMatchesWithFallback();
+  return getMatchesWithManualScores();
 }
 
 export async function getTodayMatches(): Promise<Match[]> {
   await wait(500);
 
-  const allMatches = await getRealMatchesWithFallback();
+  const allMatches = await getMatchesWithManualScores();
 
   return getTodayMatchesFromList(allMatches);
 }
@@ -71,7 +118,7 @@ export async function getTodayMatches(): Promise<Match[]> {
 export async function getPredictableMatchesOnly(): Promise<Match[]> {
   await wait(500);
 
-  const allMatches = await getRealMatchesWithFallback();
+  const allMatches = await getMatchesWithManualScores();
 
   return getPredictableMatches(allMatches);
 }
@@ -79,7 +126,7 @@ export async function getPredictableMatchesOnly(): Promise<Match[]> {
 export async function getTodayPredictableMatchesOnly(): Promise<Match[]> {
   await wait(500);
 
-  const allMatches = await getRealMatchesWithFallback();
+  const allMatches = await getMatchesWithManualScores();
   const todayMatches = getTodayMatchesFromList(allMatches);
 
   return getPredictableMatches(todayMatches);
@@ -88,7 +135,7 @@ export async function getTodayPredictableMatchesOnly(): Promise<Match[]> {
 export async function getFinishedMatches(): Promise<Match[]> {
   await wait(500);
 
-  const allMatches = await getRealMatchesWithFallback();
+  const allMatches = await getMatchesWithManualScores();
 
   return getFinishedMatchesFromList(allMatches);
 }
@@ -98,7 +145,7 @@ export async function getMatchesByTournament(
 ): Promise<Match[]> {
   await wait(500);
 
-  const allMatches = await getRealMatchesWithFallback();
+  const allMatches = await getMatchesWithManualScores();
 
   const tournamentMatches = allMatches.filter(
     (match) => match.tournamentId === tournamentId
@@ -108,7 +155,11 @@ export async function getMatchesByTournament(
     return tournamentMatches;
   }
 
-  return matches.filter((match) => match.tournamentId === tournamentId);
+  const fallbackTournamentMatches = matches
+    .filter((match) => match.tournamentId === tournamentId)
+    .map(removeApiScores);
+
+  return applyManualScores(fallbackTournamentMatches);
 }
 
 export async function getPredictableMatchesByTournament(
@@ -134,17 +185,9 @@ export async function getTodayMatchesByTournament(
 export async function getMatchById(matchId: string): Promise<Match | null> {
   await wait(500);
 
-  const realMatches = await getRealMatchesOrNull();
+  const allMatches = await getMatchesWithManualScores();
 
-  if (realMatches) {
-    const realMatch = realMatches.find((match) => match.id === matchId);
+  const foundMatch = allMatches.find((match) => match.id === matchId);
 
-    if (realMatch) {
-      return realMatch;
-    }
-  }
-
-  const mockMatch = matches.find((match) => match.id === matchId);
-
-  return mockMatch ?? null;
+  return foundMatch ?? null;
 }
