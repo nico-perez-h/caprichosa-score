@@ -1,9 +1,10 @@
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { router } from 'expo-router';
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import {
   Alert,
   Pressable,
+  RefreshControl,
   ScrollView,
   StyleSheet,
   Text,
@@ -100,25 +101,39 @@ function getEmptyText({
 }
 
 export default function PredictionsScreen() {
-  const { predictions, getPrediction } = usePredictions();
+  const { predictions, getPrediction, reloadPredictions } = usePredictions();
 
   const [allMatches, setAllMatches] = useState<Match[]>([]);
   const [isLoadingMatches, setIsLoadingMatches] = useState(true);
+  const [isRefreshing, setIsRefreshing] = useState(false);
   const [selectedFilter, setSelectedFilter] =
     useState<PredictionFilter>('pending');
 
-  useEffect(() => {
-    async function loadMatches() {
-      setIsLoadingMatches(true);
+  const loadMatches = useCallback(async () => {
+    setIsLoadingMatches(true);
 
+    try {
       const loadedMatches = await getMatches();
 
       setAllMatches(loadedMatches);
+    } finally {
       setIsLoadingMatches(false);
     }
-
-    loadMatches();
   }, []);
+
+  async function handleRefresh() {
+    try {
+      setIsRefreshing(true);
+
+      await Promise.all([loadMatches(), reloadPredictions()]);
+    } finally {
+      setIsRefreshing(false);
+    }
+  }
+
+  useEffect(() => {
+    loadMatches();
+  }, [loadMatches]);
 
   function showScoringRules() {
     Alert.alert(
@@ -157,6 +172,14 @@ export default function PredictionsScreen() {
       <ScrollView
         contentContainerStyle={styles.content}
         showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl
+            refreshing={isRefreshing}
+            onRefresh={handleRefresh}
+            tintColor="#111827"
+            colors={['#111827']}
+          />
+        }
       >
         <ScreenHeader
           title="Predicciones"
@@ -250,7 +273,7 @@ export default function PredictionsScreen() {
           <Text style={styles.sectionDescription}>
             {selectedFilter === 'pending'
               ? 'Partidos confirmados donde todavía puedes guardar una predicción.'
-              : 'Partidos donde ya guardaste un marcador.'}
+              : 'Partidos donde ya guardaste un marcador. Desliza hacia abajo para actualizar.'}
           </Text>
         </View>
 
