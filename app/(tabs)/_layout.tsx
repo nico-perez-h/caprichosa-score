@@ -1,7 +1,57 @@
 import { MaterialCommunityIcons } from '@expo/vector-icons';
-import { Tabs } from 'expo-router';
+import { Redirect, Tabs } from 'expo-router';
+import { useEffect, useState } from 'react';
+import { ActivityIndicator, StyleSheet, Text, View } from 'react-native';
+
+import { useAuth } from '@/contexts/AuthContext';
+import { getCurrentGroup } from '@/services/groupsService';
 
 export default function TabLayout() {
+  const { session, isLoadingSession } = useAuth();
+  const [hasGroup, setHasGroup] = useState<boolean | null>(null);
+  const [isCheckingGroup, setIsCheckingGroup] = useState(true);
+
+  useEffect(() => {
+    async function checkGroup() {
+      if (!session) {
+        setHasGroup(null);
+        setIsCheckingGroup(false);
+        return;
+      }
+
+      try {
+        setIsCheckingGroup(true);
+
+        const currentGroup = await getCurrentGroup();
+
+        setHasGroup(Boolean(currentGroup));
+      } catch {
+        setHasGroup(false);
+      } finally {
+        setIsCheckingGroup(false);
+      }
+    }
+
+    checkGroup();
+  }, [session]);
+
+  if (isLoadingSession || isCheckingGroup) {
+    return (
+      <View style={styles.loadingScreen}>
+        <ActivityIndicator color="#111827" />
+        <Text style={styles.loadingText}>Cargando app...</Text>
+      </View>
+    );
+  }
+
+  if (!session) {
+    return <Redirect href="/auth/login" />;
+  }
+
+  if (!hasGroup) {
+    return <Redirect href="/group" />;
+  }
+
   return (
     <Tabs
       screenOptions={{
@@ -100,3 +150,18 @@ export default function TabLayout() {
     </Tabs>
   );
 }
+
+const styles = StyleSheet.create({
+  loadingScreen: {
+    flex: 1,
+    backgroundColor: '#F9FAFB',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 12,
+  },
+  loadingText: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: '#6B7280',
+  },
+});

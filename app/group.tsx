@@ -184,6 +184,15 @@ export default function GroupScreen() {
               <Text style={styles.groupActionButtonText}>Unirme a otro</Text>
             </Pressable>
           </View>
+          <Pressable
+            style={({ pressed }) => [
+              styles.enterAppButton,
+              pressed && styles.buttonPressed,
+            ]}
+            onPress={() => router.replace("/(tabs)" as never)}
+          >
+            <Text style={styles.enterAppButtonText}>Entrar a la app</Text>
+          </Pressable>
         </View>
 
         <View style={styles.statsGrid}>
@@ -338,6 +347,19 @@ const styles = StyleSheet.create({
   buttonPressed: {
     opacity: 0.75,
     transform: [{ scale: 0.99 }],
+  },
+  enterAppButton: {
+    height: 48,
+    borderRadius: 14,
+    backgroundColor: "#FFFFFF",
+    alignItems: "center",
+    justifyContent: "center",
+    marginTop: 10,
+  },
+  enterAppButtonText: {
+    fontSize: 15,
+    fontWeight: "900",
+    color: "#111827",
   },
   emptyCard: {
     backgroundColor: "#FFFFFF",

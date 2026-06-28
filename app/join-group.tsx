@@ -47,8 +47,8 @@ export default function JoinGroupScreen() {
         `Ahora formas parte de "${foundGroup.name}".`,
         [
           {
-            text: "Ver grupo",
-            onPress: () => router.replace("/group" as never),
+            text: "Entrar",
+            onPress: () => router.replace("/(tabs)" as never),
           },
         ],
       );
