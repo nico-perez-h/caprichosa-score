@@ -73,30 +73,40 @@ export default function RankingScreen() {
 
           setGroupName(groupData.group.name);
 
-          const memberUserIds = groupData.members.map((member) => member.userId);
-          const allPredictions = await getPredictionsByUserIds(memberUserIds);
+          const memberUserIds = groupData.members.map(
+            (member) => member.userId,
+          );
+
+          const allPredictions = await getPredictionsByUserIds({
+            userIds: memberUserIds,
+            groupId: groupData.group.id,
+          });
 
           const players = groupData.members
             .map((member) => {
               const memberPredictions = allPredictions.filter(
-                (prediction) => prediction.user_id === member.userId
+                (prediction) => prediction.user_id === member.userId,
               );
 
               const predictionsRecord = memberPredictions.reduce(
                 (record, prediction) => {
                   record[prediction.match_id] = {
+                    matchId: prediction.match_id,
                     homeScore: prediction.home_score,
                     awayScore: prediction.away_score,
                   };
 
                   return record;
                 },
-                {} as Record<string, { homeScore: number; awayScore: number }>
+                {} as Record<
+                  string,
+                  { matchId: string; homeScore: number; awayScore: number }
+                >,
               );
 
               const stats = calculatePredictionStats(
                 allMatches,
-                predictionsRecord
+                predictionsRecord,
               );
 
               return {
@@ -134,12 +144,10 @@ export default function RankingScreen() {
       }
 
       loadRanking();
-    }, [allMatches, user?.id])
+    }, [allMatches, user?.id]),
   );
 
-  const currentUserRank = rankingPlayers.find(
-    (player) => player.isCurrentUser
-  );
+  const currentUserRank = rankingPlayers.find((player) => player.isCurrentUser);
 
   const isLoading = isLoadingMatches || isLoadingRanking;
 

@@ -1,12 +1,14 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import {
   createContext,
+  useCallback,
   useContext,
   useEffect,
   useState,
   type ReactNode,
 } from 'react';
 
+import { getCurrentGroup } from '@/services/groupsService';
 import {
   deleteUserPrediction,
   getUserPredictions,
@@ -27,10 +29,12 @@ type PredictionsByMatch = Record<string, Prediction>;
 type PredictionsContextValue = {
   predictions: PredictionsByMatch;
   isLoadingPredictions: boolean;
+  activeGroupId: string | null;
   getPrediction: (matchId: string) => Prediction | null;
   savePrediction: (prediction: Prediction) => Promise<void>;
   deletePrediction: (matchId: string) => Promise<void>;
   clearPredictions: () => Promise<void>;
+  reloadPredictions: () => Promise<void>;
 };
 
 const PredictionsContext = createContext<PredictionsContextValue | undefined>(
@@ -53,60 +57,93 @@ export function PredictionsProvider({ children }: PredictionsProviderProps) {
   const { user, isLoadingSession } = useAuth();
 
   const [predictions, setPredictions] = useState<PredictionsByMatch>({});
+  const [activeGroupId, setActiveGroupId] = useState<string | null>(null);
   const [isLoadingPredictions, setIsLoadingPredictions] = useState(true);
 
-  useEffect(() => {
-    async function loadPredictions() {
-      if (isLoadingSession) {
+  const loadPredictions = useCallback(async () => {
+    if (isLoadingSession) {
+      return;
+    }
+
+    setIsLoadingPredictions(true);
+
+    try {
+      if (user) {
+        const currentGroup = await getCurrentGroup();
+
+        if (!currentGroup) {
+          setActiveGroupId(null);
+          setPredictions({});
+          return;
+        }
+
+        setActiveGroupId(currentGroup.id);
+
+        const userPredictions = await getUserPredictions({
+          userId: user.id,
+          groupId: currentGroup.id,
+        });
+
+        const mappedPredictions = userPredictions.map((prediction) => ({
+          matchId: prediction.match_id,
+          homeScore: prediction.home_score,
+          awayScore: prediction.away_score,
+        }));
+
+        setPredictions(mapPredictionsListToRecord(mappedPredictions));
         return;
       }
 
-      setIsLoadingPredictions(true);
+      setActiveGroupId(null);
 
-      try {
-        if (user) {
-          const userPredictions = await getUserPredictions(user.id);
+      const storedPredictions = await AsyncStorage.getItem(
+        PREDICTIONS_STORAGE_KEY
+      );
 
-          const mappedPredictions = userPredictions.map((prediction) => ({
-            matchId: prediction.match_id,
-            homeScore: prediction.home_score,
-            awayScore: prediction.away_score,
-          }));
+      if (storedPredictions) {
+        const parsedPredictions = JSON.parse(
+          storedPredictions
+        ) as PredictionsByMatch;
 
-          setPredictions(mapPredictionsListToRecord(mappedPredictions));
-          return;
-        }
-
-        const storedPredictions = await AsyncStorage.getItem(
-          PREDICTIONS_STORAGE_KEY
-        );
-
-        if (storedPredictions) {
-          const parsedPredictions = JSON.parse(
-            storedPredictions
-          ) as PredictionsByMatch;
-
-          setPredictions(parsedPredictions);
-          return;
-        }
-
-        setPredictions({});
-      } catch (error) {
-        console.log('Error cargando predicciones:', error);
-        setPredictions({});
-      } finally {
-        setIsLoadingPredictions(false);
+        setPredictions(parsedPredictions);
+        return;
       }
-    }
 
-    loadPredictions();
+      setPredictions({});
+    } catch (error) {
+      console.log('Error cargando predicciones:', error);
+      setActiveGroupId(null);
+      setPredictions({});
+    } finally {
+      setIsLoadingPredictions(false);
+    }
   }, [user, isLoadingSession]);
+
+  useEffect(() => {
+    loadPredictions();
+  }, [loadPredictions]);
 
   function persistLocalPredictions(updatedPredictions: PredictionsByMatch) {
     AsyncStorage.setItem(
       PREDICTIONS_STORAGE_KEY,
       JSON.stringify(updatedPredictions)
     ).catch(() => {});
+  }
+
+  async function getCurrentActiveGroupId() {
+    if (activeGroupId) {
+      return activeGroupId;
+    }
+
+    const currentGroup = await getCurrentGroup();
+
+    if (!currentGroup) {
+      throw new Error('Debes seleccionar un grupo para guardar predicciones.');
+    }
+
+    setActiveGroupId(currentGroup.id);
+
+    return currentGroup.id;
   }
 
   function getPrediction(matchId: string) {
@@ -128,8 +165,11 @@ export function PredictionsProvider({ children }: PredictionsProviderProps) {
     });
 
     if (user) {
+      const groupId = await getCurrentActiveGroupId();
+
       await upsertUserPrediction({
         userId: user.id,
+        groupId,
         matchId: prediction.matchId,
         homeScore: prediction.homeScore,
         awayScore: prediction.awayScore,
@@ -153,8 +193,11 @@ export function PredictionsProvider({ children }: PredictionsProviderProps) {
     });
 
     if (user) {
+      const groupId = await getCurrentActiveGroupId();
+
       await deleteUserPrediction({
         userId: user.id,
+        groupId,
         matchId,
       });
     }
@@ -164,9 +207,12 @@ export function PredictionsProvider({ children }: PredictionsProviderProps) {
     setPredictions({});
 
     if (user) {
+      const groupId = await getCurrentActiveGroupId();
+
       const deletePromises = Object.keys(predictions).map((matchId) =>
         deleteUserPrediction({
           userId: user.id,
+          groupId,
           matchId,
         })
       );
@@ -183,10 +229,12 @@ export function PredictionsProvider({ children }: PredictionsProviderProps) {
       value={{
         predictions,
         isLoadingPredictions,
+        activeGroupId,
         getPrediction,
         savePrediction,
         deletePrediction,
         clearPredictions,
+        reloadPredictions: loadPredictions,
       }}
     >
       {children}

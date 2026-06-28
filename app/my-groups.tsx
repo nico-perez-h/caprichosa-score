@@ -1,5 +1,5 @@
-import { router, useFocusEffect } from 'expo-router';
-import { useCallback, useState } from 'react';
+import { router, useFocusEffect } from "expo-router";
+import { useCallback, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
@@ -8,18 +8,20 @@ import {
   StyleSheet,
   Text,
   View,
-} from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+} from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 
-import { ScreenHeader } from '@/components/ScreenHeader';
+import { ScreenHeader } from "@/components/ScreenHeader";
 import {
   getMyGroups,
   setActiveGroup,
   type MyGroupItem,
-} from '@/services/groupsService';
+} from "@/services/groupsService";
+import { usePredictions } from "@/contexts/PredictionsContext";
 
 export default function MyGroupsScreen() {
   const [groups, setGroups] = useState<MyGroupItem[]>([]);
+  const { reloadPredictions } = usePredictions();
   const [isLoadingGroups, setIsLoadingGroups] = useState(true);
   const [selectedGroupId, setSelectedGroupId] = useState<string | null>(null);
 
@@ -32,9 +34,11 @@ export default function MyGroupsScreen() {
       setGroups(loadedGroups);
     } catch (error) {
       const errorMessage =
-        error instanceof Error ? error.message : 'No se pudieron cargar tus grupos.';
+        error instanceof Error
+          ? error.message
+          : "No se pudieron cargar tus grupos.";
 
-      Alert.alert('Error', errorMessage);
+      Alert.alert("Error", errorMessage);
     } finally {
       setIsLoadingGroups(false);
     }
@@ -43,7 +47,7 @@ export default function MyGroupsScreen() {
   useFocusEffect(
     useCallback(() => {
       loadGroups();
-    }, [])
+    }, []),
   );
 
   async function handleSelectGroup(groupId: string) {
@@ -52,25 +56,27 @@ export default function MyGroupsScreen() {
 
       const activeGroup = await setActiveGroup(groupId);
 
+      await reloadPredictions();
+
       Alert.alert(
-        'Grupo activo',
+        "Grupo activo",
         `Ahora estás jugando en "${activeGroup.name}".`,
         [
           {
-            text: 'Ver grupo',
-            onPress: () => router.replace('/group' as never),
+            text: "Ver grupo",
+            onPress: () => router.replace("/group" as never),
           },
           {
-            text: 'Ir al inicio',
-            onPress: () => router.replace('/(tabs)' as never),
+            text: "Ir al inicio",
+            onPress: () => router.replace("/(tabs)" as never),
           },
-        ]
+        ],
       );
     } catch (error) {
       const errorMessage =
-        error instanceof Error ? error.message : 'No se pudo cambiar de grupo.';
+        error instanceof Error ? error.message : "No se pudo cambiar de grupo.";
 
-      Alert.alert('Error', errorMessage);
+      Alert.alert("Error", errorMessage);
     } finally {
       setSelectedGroupId(null);
     }
@@ -111,7 +117,7 @@ export default function MyGroupsScreen() {
               styles.primaryButton,
               pressed && styles.buttonPressed,
             ]}
-            onPress={() => router.push('/create-group' as never)}
+            onPress={() => router.push("/create-group" as never)}
           >
             <Text style={styles.primaryButtonText}>Crear grupo</Text>
           </Pressable>
@@ -121,7 +127,7 @@ export default function MyGroupsScreen() {
               styles.secondaryButton,
               pressed && styles.buttonPressed,
             ]}
-            onPress={() => router.push('/join-group' as never)}
+            onPress={() => router.push("/join-group" as never)}
           >
             <Text style={styles.secondaryButtonText}>Unirme con código</Text>
           </Pressable>
@@ -168,7 +174,7 @@ export default function MyGroupsScreen() {
                         item.isActive && styles.activeGroupMetaText,
                       ]}
                     >
-                      {item.role === 'admin' ? 'Administrador' : 'Miembro'} ·{' '}
+                      {item.role === "admin" ? "Administrador" : "Miembro"} ·{" "}
                       {item.group.inviteCode}
                     </Text>
                   </View>
@@ -186,10 +192,10 @@ export default function MyGroupsScreen() {
                       ]}
                     >
                       {item.isActive
-                        ? 'Activo'
+                        ? "Activo"
                         : isSelecting
-                          ? 'Cambiando...'
-                          : 'Usar'}
+                          ? "Cambiando..."
+                          : "Usar"}
                     </Text>
                   </View>
                 </Pressable>
@@ -213,7 +219,7 @@ export default function MyGroupsScreen() {
 const styles = StyleSheet.create({
   screen: {
     flex: 1,
-    backgroundColor: '#F9FAFB',
+    backgroundColor: "#F9FAFB",
   },
   scroll: {
     flex: 1,
@@ -225,166 +231,166 @@ const styles = StyleSheet.create({
   },
   loadingContent: {
     flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: "center",
+    justifyContent: "center",
     paddingHorizontal: 24,
   },
   loadingText: {
     marginTop: 12,
     fontSize: 15,
-    fontWeight: '700',
-    color: '#6B7280',
+    fontWeight: "700",
+    color: "#6B7280",
   },
   backButton: {
-    alignSelf: 'flex-start',
+    alignSelf: "flex-start",
     marginBottom: 20,
   },
   backButtonText: {
     fontSize: 16,
-    fontWeight: '700',
-    color: '#111827',
+    fontWeight: "700",
+    color: "#111827",
   },
   actionsCard: {
-    backgroundColor: '#111827',
+    backgroundColor: "#111827",
     borderRadius: 22,
     padding: 18,
     marginBottom: 16,
   },
   actionsTitle: {
     fontSize: 18,
-    fontWeight: '900',
-    color: '#FFFFFF',
+    fontWeight: "900",
+    color: "#FFFFFF",
     marginBottom: 12,
   },
   primaryButton: {
     height: 50,
     borderRadius: 14,
-    backgroundColor: '#FFFFFF',
-    alignItems: 'center',
-    justifyContent: 'center',
+    backgroundColor: "#FFFFFF",
+    alignItems: "center",
+    justifyContent: "center",
   },
   primaryButtonText: {
     fontSize: 15,
-    fontWeight: '900',
-    color: '#111827',
+    fontWeight: "900",
+    color: "#111827",
   },
   secondaryButton: {
     height: 50,
     borderRadius: 14,
-    backgroundColor: '#374151',
-    alignItems: 'center',
-    justifyContent: 'center',
+    backgroundColor: "#374151",
+    alignItems: "center",
+    justifyContent: "center",
     marginTop: 10,
   },
   secondaryButtonText: {
     fontSize: 15,
-    fontWeight: '900',
-    color: '#FFFFFF',
+    fontWeight: "900",
+    color: "#FFFFFF",
   },
   buttonPressed: {
     opacity: 0.75,
     transform: [{ scale: 0.99 }],
   },
   groupsCard: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: "#FFFFFF",
     borderRadius: 20,
     padding: 18,
     borderWidth: 1,
-    borderColor: '#E5E7EB',
+    borderColor: "#E5E7EB",
     marginBottom: 16,
   },
   cardTitle: {
     fontSize: 18,
-    fontWeight: '900',
-    color: '#111827',
+    fontWeight: "900",
+    color: "#111827",
     marginBottom: 12,
   },
   groupItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     gap: 12,
     borderRadius: 16,
     padding: 14,
-    backgroundColor: '#F9FAFB',
+    backgroundColor: "#F9FAFB",
     borderWidth: 1,
-    borderColor: '#E5E7EB',
+    borderColor: "#E5E7EB",
     marginBottom: 10,
   },
   activeGroupItem: {
-    backgroundColor: '#111827',
-    borderColor: '#111827',
+    backgroundColor: "#111827",
+    borderColor: "#111827",
   },
   groupInfo: {
     flex: 1,
   },
   groupName: {
     fontSize: 16,
-    fontWeight: '900',
-    color: '#111827',
+    fontWeight: "900",
+    color: "#111827",
   },
   activeGroupText: {
-    color: '#FFFFFF',
+    color: "#FFFFFF",
   },
   groupMeta: {
     marginTop: 4,
     fontSize: 12,
-    fontWeight: '700',
-    color: '#6B7280',
+    fontWeight: "700",
+    color: "#6B7280",
   },
   activeGroupMetaText: {
-    color: '#D1D5DB',
+    color: "#D1D5DB",
   },
   statusPill: {
     borderRadius: 999,
     paddingHorizontal: 10,
     paddingVertical: 6,
-    backgroundColor: '#E5E7EB',
+    backgroundColor: "#E5E7EB",
   },
   activeStatusPill: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: "#FFFFFF",
   },
   statusPillText: {
     fontSize: 12,
-    fontWeight: '900',
-    color: '#111827',
+    fontWeight: "900",
+    color: "#111827",
   },
   activeStatusPillText: {
-    color: '#111827',
+    color: "#111827",
   },
   emptyBox: {
     borderRadius: 16,
-    backgroundColor: '#F9FAFB',
+    backgroundColor: "#F9FAFB",
     padding: 16,
   },
   emptyTitle: {
     fontSize: 16,
-    fontWeight: '900',
-    color: '#111827',
+    fontWeight: "900",
+    color: "#111827",
     marginBottom: 6,
   },
   emptyText: {
     fontSize: 14,
     lineHeight: 20,
-    fontWeight: '600',
-    color: '#6B7280',
+    fontWeight: "600",
+    color: "#6B7280",
   },
   infoCard: {
-    backgroundColor: '#EFF6FF',
+    backgroundColor: "#EFF6FF",
     borderRadius: 20,
     padding: 18,
     borderWidth: 1,
-    borderColor: '#BFDBFE',
+    borderColor: "#BFDBFE",
   },
   infoTitle: {
     fontSize: 16,
-    fontWeight: '900',
-    color: '#1D4ED8',
+    fontWeight: "900",
+    color: "#1D4ED8",
     marginBottom: 6,
   },
   infoText: {
     fontSize: 14,
     lineHeight: 20,
-    fontWeight: '600',
-    color: '#1E40AF',
+    fontWeight: "600",
+    color: "#1E40AF",
   },
 });
