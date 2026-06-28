@@ -15,12 +15,32 @@ import { useFocusEffect } from "@react-navigation/native";
 
 import { ScreenHeader } from "@/components/ScreenHeader";
 import {
+  getGroupAnnouncements,
+  type GroupAnnouncement,
+} from "@/services/groupAdjustmentsService";
+
+import {
   getCurrentGroupData,
   type CurrentGroupData,
 } from "@/services/groupsService";
 
+function formatAnnouncementDate(dateText: string) {
+  const date = new Date(dateText);
+
+  return new Intl.DateTimeFormat("es-BO", {
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+    timeZone: "America/La_Paz",
+  }).format(date);
+}
+
 export default function GroupScreen() {
   const [groupData, setGroupData] = useState<CurrentGroupData | null>(null);
+  const [announcements, setAnnouncements] = useState<GroupAnnouncement[]>([]);
   const [isLoadingGroup, setIsLoadingGroup] = useState(true);
 
   async function loadGroup() {
@@ -30,6 +50,16 @@ export default function GroupScreen() {
       const loadedGroupData = await getCurrentGroupData();
 
       setGroupData(loadedGroupData);
+
+      if (loadedGroupData) {
+        const loadedAnnouncements = await getGroupAnnouncements(
+          loadedGroupData.group.id,
+        );
+
+        setAnnouncements(loadedAnnouncements);
+      } else {
+        setAnnouncements([]);
+      }
     } catch (error) {
       const errorMessage =
         error instanceof Error ? error.message : "No se pudo cargar el grupo.";
@@ -248,11 +278,47 @@ export default function GroupScreen() {
           ))}
         </View>
 
+        <View style={styles.announcementsCard}>
+          <Text style={styles.cardTitle}>Anuncios recientes</Text>
+
+          {announcements.length === 0 ? (
+            <View style={styles.emptyAnnouncementBox}>
+              <Text style={styles.emptyAnnouncementTitle}>
+                Sin anuncios todavía
+              </Text>
+              <Text style={styles.emptyAnnouncementText}>
+                Cuando el administrador ajuste puntos o publique novedades,
+                aparecerán aquí.
+              </Text>
+            </View>
+          ) : (
+            announcements.map((announcement) => (
+              <View key={announcement.id} style={styles.announcementRow}>
+                <View style={styles.announcementDot} />
+
+                <View style={styles.announcementInfo}>
+                  <Text style={styles.announcementTitle}>
+                    {announcement.title}
+                  </Text>
+
+                  <Text style={styles.announcementDate}>
+                    {formatAnnouncementDate(announcement.created_at)}
+                  </Text>
+
+                  <Text style={styles.announcementMessage}>
+                    {announcement.message}
+                  </Text>
+                </View>
+              </View>
+            ))
+          )}
+        </View>
+
         <View style={styles.infoCard}>
-          <Text style={styles.infoTitle}>Grupo conectado</Text>
+          <Text style={styles.infoTitle}>Grupo activo</Text>
           <Text style={styles.infoText}>
-            Este grupo ya está guardado en Supabase. El siguiente paso será
-            calcular el ranking real con las predicciones de sus integrantes.
+            Este grupo ya usa integrantes reales, predicciones, ranking y
+            ajustes de puntos guardados en Supabase.
           </Text>
         </View>
       </ScrollView>
@@ -520,6 +586,66 @@ const styles = StyleSheet.create({
     marginTop: 3,
     fontSize: 12,
     fontWeight: "700",
+    color: "#6B7280",
+  },
+  announcementsCard: {
+    backgroundColor: "#FFFFFF",
+    borderRadius: 20,
+    padding: 18,
+    borderWidth: 1,
+    borderColor: "#E5E7EB",
+    marginBottom: 16,
+  },
+  announcementRow: {
+    flexDirection: "row",
+    gap: 12,
+    paddingVertical: 12,
+    borderTopWidth: 1,
+    borderTopColor: "#F3F4F6",
+  },
+  announcementDot: {
+    width: 10,
+    height: 10,
+    borderRadius: 999,
+    backgroundColor: "#111827",
+    marginTop: 5,
+  },
+  announcementInfo: {
+    flex: 1,
+  },
+  announcementTitle: {
+    fontSize: 15,
+    fontWeight: "900",
+    color: "#111827",
+  },
+  announcementDate: {
+    marginTop: 3,
+    fontSize: 12,
+    fontWeight: "800",
+    color: "#9CA3AF",
+  },
+  announcementMessage: {
+    marginTop: 4,
+    fontSize: 13,
+    lineHeight: 19,
+    fontWeight: "600",
+    color: "#6B7280",
+  },
+  emptyAnnouncementBox: {
+    borderRadius: 16,
+    backgroundColor: "#F9FAFB",
+    padding: 14,
+  },
+  emptyAnnouncementTitle: {
+    fontSize: 15,
+    fontWeight: "900",
+    color: "#111827",
+    marginBottom: 4,
+  },
+  emptyAnnouncementText: {
+    fontSize: 13,
+    lineHeight: 19,
+    fontWeight: "600",
     color: "#6B7280",
   },
   infoCard: {
