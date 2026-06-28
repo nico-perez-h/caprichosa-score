@@ -193,6 +193,16 @@ export default function GroupScreen() {
           >
             <Text style={styles.enterAppButtonText}>Entrar a la app</Text>
           </Pressable>
+
+          <Pressable
+            style={({ pressed }) => [
+              styles.myGroupsButton,
+              pressed && styles.buttonPressed,
+            ]}
+            onPress={() => router.push("/my-groups" as never)}
+          >
+            <Text style={styles.myGroupsButtonText}>Ver mis grupos</Text>
+          </Pressable>
         </View>
 
         <View style={styles.statsGrid}>
@@ -360,6 +370,19 @@ const styles = StyleSheet.create({
     fontSize: 15,
     fontWeight: "900",
     color: "#111827",
+  },
+  myGroupsButton: {
+    height: 48,
+    borderRadius: 14,
+    backgroundColor: "#374151",
+    alignItems: "center",
+    justifyContent: "center",
+    marginTop: 10,
+  },
+  myGroupsButtonText: {
+    fontSize: 15,
+    fontWeight: "900",
+    color: "#FFFFFF",
   },
   emptyCard: {
     backgroundColor: "#FFFFFF",

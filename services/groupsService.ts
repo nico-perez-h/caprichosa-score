@@ -35,6 +35,12 @@ export type GroupMemberWithProfile = {
   email: string | null;
 };
 
+export type MyGroupItem = {
+  group: Group;
+  role: 'admin' | 'member';
+  isActive: boolean;
+};
+
 export type CurrentGroupData = {
   group: Group;
   role: 'admin' | 'member';
@@ -89,13 +95,46 @@ async function getCurrentUserId() {
   return data.user.id;
 }
 
-export async function getCurrentGroup(): Promise<Group | null> {
-  const userId = await getCurrentUserId();
+async function getActiveGroupId(userId: string) {
+  const { data, error } = await supabase
+    .from('profiles')
+    .select('active_group_id')
+    .eq('id', userId)
+    .single();
 
+  if (error) {
+    return null;
+  }
+
+  return data?.active_group_id as string | null;
+}
+
+async function setActiveGroupId({
+  userId,
+  groupId,
+}: {
+  userId: string;
+  groupId: string;
+}) {
+  const { error } = await supabase
+    .from('profiles')
+    .update({
+      active_group_id: groupId,
+      updated_at: new Date().toISOString(),
+    })
+    .eq('id', userId);
+
+  if (error) {
+    throw new Error(error.message);
+  }
+}
+
+async function getLatestMembership(userId: string) {
   const { data, error } = await supabase
     .from('group_members')
     .select(
       `
+      role,
       groups (
         id,
         name,
@@ -117,12 +156,89 @@ export async function getCurrentGroup(): Promise<Group | null> {
   }
 
   const group = (data as any)?.groups as SupabaseGroup | null;
+  const role = (data as any)?.role as 'admin' | 'member' | undefined;
 
-  if (!group) {
+  if (!group || !role) {
     return null;
   }
 
-  return mapSupabaseGroupToAppGroup(group);
+  return {
+    group,
+    role,
+  };
+}
+
+async function getMembershipByGroupId({
+  userId,
+  groupId,
+}: {
+  userId: string;
+  groupId: string;
+}) {
+  const { data, error } = await supabase
+    .from('group_members')
+    .select(
+      `
+      role,
+      groups (
+        id,
+        name,
+        description,
+        join_code,
+        created_by,
+        created_at,
+        updated_at
+      )
+    `,
+    )
+    .eq('user_id', userId)
+    .eq('group_id', groupId)
+    .maybeSingle();
+
+  if (error) {
+    throw new Error(error.message);
+  }
+
+  const group = (data as any)?.groups as SupabaseGroup | null;
+  const role = (data as any)?.role as 'admin' | 'member' | undefined;
+
+  if (!group || !role) {
+    return null;
+  }
+
+  return {
+    group,
+    role,
+  };
+}
+
+export async function getCurrentGroup(): Promise<Group | null> {
+  const userId = await getCurrentUserId();
+  const activeGroupId = await getActiveGroupId(userId);
+
+  if (activeGroupId) {
+    const activeMembership = await getMembershipByGroupId({
+      userId,
+      groupId: activeGroupId,
+    });
+
+    if (activeMembership) {
+      return mapSupabaseGroupToAppGroup(activeMembership.group);
+    }
+  }
+
+  const latestMembership = await getLatestMembership(userId);
+
+  if (!latestMembership) {
+    return null;
+  }
+
+  await setActiveGroupId({
+    userId,
+    groupId: latestMembership.group.id,
+  });
+
+  return mapSupabaseGroupToAppGroup(latestMembership.group);
 }
 
 export async function getGroupMembers(groupId: string) {
@@ -173,6 +289,43 @@ export async function getGroupMembers(groupId: string) {
 
 export async function getCurrentGroupData(): Promise<CurrentGroupData | null> {
   const userId = await getCurrentUserId();
+  const activeGroupId = await getActiveGroupId(userId);
+
+  let membership = null;
+
+  if (activeGroupId) {
+    membership = await getMembershipByGroupId({
+      userId,
+      groupId: activeGroupId,
+    });
+  }
+
+  if (!membership) {
+    membership = await getLatestMembership(userId);
+  }
+
+  if (!membership) {
+    return null;
+  }
+
+  await setActiveGroupId({
+    userId,
+    groupId: membership.group.id,
+  });
+
+  const appGroup = mapSupabaseGroupToAppGroup(membership.group);
+  const members = await getGroupMembers(appGroup.id);
+
+  return {
+    group: appGroup,
+    role: membership.role,
+    members,
+  };
+}
+
+export async function getMyGroups(): Promise<MyGroupItem[]> {
+  const userId = await getCurrentUserId();
+  const activeGroupId = await getActiveGroupId(userId);
 
   const { data, error } = await supabase
     .from('group_members')
@@ -191,29 +344,47 @@ export async function getCurrentGroupData(): Promise<CurrentGroupData | null> {
     `,
     )
     .eq('user_id', userId)
-    .order('joined_at', { ascending: false })
-    .limit(1)
-    .maybeSingle();
+    .order('joined_at', { ascending: false });
 
   if (error) {
     throw new Error(error.message);
   }
 
-  const group = (data as any)?.groups as SupabaseGroup | null;
-  const role = (data as any)?.role as 'admin' | 'member' | undefined;
+  return (data ?? [])
+    .map((membership: any) => {
+      const group = membership.groups as SupabaseGroup | null;
 
-  if (!group || !role) {
-    return null;
+      if (!group) {
+        return null;
+      }
+
+      return {
+        group: mapSupabaseGroupToAppGroup(group),
+        role: membership.role as 'admin' | 'member',
+        isActive: group.id === activeGroupId,
+      };
+    })
+    .filter(Boolean) as MyGroupItem[];
+}
+
+export async function setActiveGroup(groupId: string) {
+  const userId = await getCurrentUserId();
+
+  const membership = await getMembershipByGroupId({
+    userId,
+    groupId,
+  });
+
+  if (!membership) {
+    throw new Error('No perteneces a este grupo.');
   }
 
-  const appGroup = mapSupabaseGroupToAppGroup(group);
-  const members = await getGroupMembers(appGroup.id);
+  await setActiveGroupId({
+    userId,
+    groupId,
+  });
 
-  return {
-    group: appGroup,
-    role,
-    members,
-  };
+  return mapSupabaseGroupToAppGroup(membership.group);
 }
 
 export async function findGroupByInviteCode(inviteCode: string) {
@@ -247,6 +418,11 @@ export async function findGroupByInviteCode(inviteCode: string) {
 
     throw new Error(memberError.message);
   }
+
+  await setActiveGroupId({
+    userId,
+    groupId: group.id,
+  });
 
   return mapSupabaseGroupToAppGroup(group as SupabaseGroup);
 }
@@ -286,6 +462,11 @@ export async function createGroup(input: CreateGroupInput): Promise<Group> {
   if (memberError) {
     throw new Error(memberError.message);
   }
+
+  await setActiveGroupId({
+    userId,
+    groupId: group.id,
+  });
 
   return mapSupabaseGroupToAppGroup(group as SupabaseGroup);
 }

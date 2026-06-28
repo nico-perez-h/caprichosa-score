@@ -1,6 +1,6 @@
 import { MaterialCommunityIcons } from "@expo/vector-icons";
-import { router } from "expo-router";
-import { useEffect, useState } from "react";
+import { router, useFocusEffect } from "expo-router";
+import { useCallback, useEffect, useState } from "react";
 import {
   ActivityIndicator,
   Pressable,
@@ -11,7 +11,9 @@ import {
 } from "react-native";
 
 import { MatchCard } from "@/components/MatchCard";
+import { getCurrentGroup } from "@/services/groupsService";
 import { getMatches, getTodayMatches } from "@/services/matchesService";
+import type { Group } from "@/types/group";
 import type { Match } from "@/types/match";
 import { usePredictions } from "../../contexts/PredictionsContext";
 import { useUserProfile } from "../../contexts/UserProfileContext";
@@ -42,12 +44,15 @@ function isConfirmedMatch(match: Match) {
   );
 }
 
-function getMatchesWithoutPrediction(matches: Match[], predictions: Record<string, unknown>) {
+function getMatchesWithoutPrediction(
+  matches: Match[],
+  predictions: Record<string, unknown>
+) {
   return matches.filter(
     (match) =>
       match.status === "Por jugar" &&
       isConfirmedMatch(match) &&
-      !predictions[match.id],
+      !predictions[match.id]
   );
 }
 
@@ -57,7 +62,9 @@ export default function HomeScreen() {
 
   const [allMatches, setAllMatches] = useState<Match[]>([]);
   const [todayMatches, setTodayMatches] = useState<Match[]>([]);
+  const [activeGroup, setActiveGroup] = useState<Group | null>(null);
   const [isLoadingMatches, setIsLoadingMatches] = useState(true);
+  const [isLoadingGroup, setIsLoadingGroup] = useState(true);
 
   useEffect(() => {
     async function loadMatches() {
@@ -75,6 +82,26 @@ export default function HomeScreen() {
 
     loadMatches();
   }, []);
+
+  useFocusEffect(
+    useCallback(() => {
+      async function loadActiveGroup() {
+        try {
+          setIsLoadingGroup(true);
+
+          const currentGroup = await getCurrentGroup();
+
+          setActiveGroup(currentGroup);
+        } catch {
+          setActiveGroup(null);
+        } finally {
+          setIsLoadingGroup(false);
+        }
+      }
+
+      loadActiveGroup();
+    }, [])
+  );
 
   const totalPoints = calculateTotalPredictionPoints(allMatches, predictions);
   const totalPredictions = Object.keys(predictions).length;
@@ -98,6 +125,37 @@ export default function HomeScreen() {
           predicciones.
         </Text>
       </View>
+
+      <Pressable
+        style={({ pressed }) => [
+          styles.activeGroupCard,
+          pressed && styles.buttonPressed,
+        ]}
+        onPress={() => router.push("/my-groups" as never)}
+      >
+        <View style={styles.activeGroupIconBox}>
+          <MaterialCommunityIcons
+            name="account-group-outline"
+            size={24}
+            color="#111827"
+          />
+        </View>
+
+        <View style={styles.activeGroupInfo}>
+          <Text style={styles.activeGroupLabel}>Jugando en</Text>
+          <Text style={styles.activeGroupName}>
+            {isLoadingGroup
+              ? "Cargando grupo..."
+              : activeGroup?.name ?? "Sin grupo activo"}
+          </Text>
+        </View>
+
+        <MaterialCommunityIcons
+          name="chevron-right"
+          size={24}
+          color="#9CA3AF"
+        />
+      </Pressable>
 
       <View style={styles.statsRow}>
         <View style={styles.statCard}>
@@ -177,7 +235,7 @@ const styles = StyleSheet.create({
     marginBottom: 22,
   },
   header: {
-    marginBottom: 22,
+    marginBottom: 16,
   },
   greeting: {
     fontSize: 17,
@@ -197,6 +255,43 @@ const styles = StyleSheet.create({
     lineHeight: 22,
     fontWeight: "600",
     color: "#6B7280",
+  },
+  activeGroupCard: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+    backgroundColor: "#FFFFFF",
+    borderRadius: 18,
+    padding: 14,
+    borderWidth: 1,
+    borderColor: "#E5E7EB",
+    marginBottom: 16,
+  },
+  activeGroupIconBox: {
+    width: 46,
+    height: 46,
+    borderRadius: 14,
+    backgroundColor: "#F3F4F6",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  activeGroupInfo: {
+    flex: 1,
+  },
+  activeGroupLabel: {
+    fontSize: 12,
+    fontWeight: "900",
+    color: "#6B7280",
+    marginBottom: 3,
+  },
+  activeGroupName: {
+    fontSize: 17,
+    fontWeight: "900",
+    color: "#111827",
+  },
+  buttonPressed: {
+    opacity: 0.75,
+    transform: [{ scale: 0.99 }],
   },
   statsRow: {
     flexDirection: "row",
