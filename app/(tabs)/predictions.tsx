@@ -13,6 +13,9 @@ import {
 
 import { MatchCard } from '@/components/MatchCard';
 import { ScreenHeader } from '@/components/ScreenHeader';
+import { useAuth } from '@/contexts/AuthContext';
+import { getGroupPointAdjustments } from '@/services/groupAdjustmentsService';
+import { getCurrentGroup } from '@/services/groupsService';
 import { getMatches } from '@/services/matchesService';
 import type { Match } from '@/types/match';
 import { usePredictions } from '../../contexts/PredictionsContext';
@@ -102,10 +105,12 @@ function getEmptyText({
 
 export default function PredictionsScreen() {
   const { predictions, getPrediction, reloadPredictions } = usePredictions();
+  const { user } = useAuth();
 
   const [allMatches, setAllMatches] = useState<Match[]>([]);
   const [isLoadingMatches, setIsLoadingMatches] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [manualPoints, setManualPoints] = useState(0);
   const [selectedFilter, setSelectedFilter] =
     useState<PredictionFilter>('pending');
 
@@ -121,11 +126,37 @@ export default function PredictionsScreen() {
     }
   }, []);
 
+  const loadManualPoints = useCallback(async () => {
+    if (!user) {
+      setManualPoints(0);
+      return;
+    }
+
+    try {
+      const currentGroup = await getCurrentGroup();
+
+      if (!currentGroup) {
+        setManualPoints(0);
+        return;
+      }
+
+      const pointAdjustments = await getGroupPointAdjustments(currentGroup.id);
+
+      const userManualPoints = pointAdjustments
+        .filter((adjustment) => adjustment.target_user_id === user.id)
+        .reduce((total, adjustment) => total + adjustment.points, 0);
+
+      setManualPoints(userManualPoints);
+    } catch {
+      setManualPoints(0);
+    }
+  }, [user]);
+
   async function handleRefresh() {
     try {
       setIsRefreshing(true);
 
-      await Promise.all([loadMatches(), reloadPredictions()]);
+      await Promise.all([loadMatches(), reloadPredictions(), loadManualPoints()]);
     } finally {
       setIsRefreshing(false);
     }
@@ -133,7 +164,8 @@ export default function PredictionsScreen() {
 
   useEffect(() => {
     loadMatches();
-  }, [loadMatches]);
+    loadManualPoints();
+  }, [loadMatches, loadManualPoints]);
 
   function showScoringRules() {
     Alert.alert(
@@ -159,7 +191,11 @@ export default function PredictionsScreen() {
     predictedMatches.filter(isConfirmedMatch)
   );
 
-  const totalPoints = calculateTotalPredictionPoints(allMatches, predictions);
+  const predictionPoints = calculateTotalPredictionPoints(
+    allMatches,
+    predictions
+  );
+  const totalPoints = predictionPoints + manualPoints;
   const totalPredictions = predictedMatches.length;
 
   const visibleMatches =

@@ -12,6 +12,8 @@ import {
 } from "react-native";
 
 import { MatchCard } from "@/components/MatchCard";
+import { useAuth } from "@/contexts/AuthContext";
+import { getGroupPointAdjustments } from "@/services/groupAdjustmentsService";
 import { getCurrentGroup } from "@/services/groupsService";
 import { getMatches, getTodayMatches } from "@/services/matchesService";
 import type { Group } from "@/types/group";
@@ -60,15 +62,17 @@ function getMatchesWithoutPrediction(
 export default function HomeScreen() {
   const { predictions, getPrediction } = usePredictions();
   const { playerName } = useUserProfile();
+  const { user } = useAuth();
 
   const [allMatches, setAllMatches] = useState<Match[]>([]);
   const [todayMatches, setTodayMatches] = useState<Match[]>([]);
   const [activeGroup, setActiveGroup] = useState<Group | null>(null);
+  const [manualPoints, setManualPoints] = useState(0);
   const [isLoadingMatches, setIsLoadingMatches] = useState(true);
   const [isLoadingGroup, setIsLoadingGroup] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
 
-  async function loadMatches() {
+  const loadMatches = useCallback(async () => {
     setIsLoadingMatches(true);
 
     try {
@@ -82,21 +86,35 @@ export default function HomeScreen() {
     } finally {
       setIsLoadingMatches(false);
     }
-  }
+  }, []);
 
-  async function loadActiveGroup() {
+  const loadActiveGroup = useCallback(async () => {
     try {
       setIsLoadingGroup(true);
 
       const currentGroup = await getCurrentGroup();
 
       setActiveGroup(currentGroup);
+
+      if (!currentGroup || !user) {
+        setManualPoints(0);
+        return;
+      }
+
+      const pointAdjustments = await getGroupPointAdjustments(currentGroup.id);
+
+      const userManualPoints = pointAdjustments
+        .filter((adjustment) => adjustment.target_user_id === user.id)
+        .reduce((total, adjustment) => total + adjustment.points, 0);
+
+      setManualPoints(userManualPoints);
     } catch {
       setActiveGroup(null);
+      setManualPoints(0);
     } finally {
       setIsLoadingGroup(false);
     }
-  }
+  }, [user]);
 
   async function handleRefresh() {
     try {
@@ -110,15 +128,19 @@ export default function HomeScreen() {
 
   useEffect(() => {
     loadMatches();
-  }, []);
+  }, [loadMatches]);
 
   useFocusEffect(
     useCallback(() => {
       loadActiveGroup();
-    }, [])
+    }, [loadActiveGroup])
   );
 
-  const totalPoints = calculateTotalPredictionPoints(allMatches, predictions);
+  const predictionPoints = calculateTotalPredictionPoints(
+    allMatches,
+    predictions
+  );
+  const totalPoints = predictionPoints + manualPoints;
   const totalPredictions = Object.keys(predictions).length;
   const pendingPredictions = getMatchesWithoutPrediction(allMatches, predictions);
 
