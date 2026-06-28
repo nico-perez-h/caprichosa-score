@@ -13,6 +13,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { getCurrentGroupData } from "@/services/groupsService";
 import { getMatches } from "@/services/matchesService";
 import { getPredictionsByUserIds } from "@/services/predictionsService";
+import { getGroupPointAdjustments } from "@/services/groupAdjustmentsService";
 import type { Match } from "@/types/match";
 import { calculatePredictionStats } from "../../utils/predictionStats";
 
@@ -82,6 +83,10 @@ export default function RankingScreen() {
             groupId: groupData.group.id,
           });
 
+          const pointAdjustments = await getGroupPointAdjustments(
+            groupData.group.id,
+          );
+
           const players = groupData.members
             .map((member) => {
               const memberPredictions = allPredictions.filter(
@@ -109,10 +114,16 @@ export default function RankingScreen() {
                 predictionsRecord,
               );
 
+              const manualPoints = pointAdjustments
+                .filter(
+                  (adjustment) => adjustment.target_user_id === member.userId,
+                )
+                .reduce((total, adjustment) => total + adjustment.points, 0);
+
               return {
                 id: member.userId,
                 name: member.playerName,
-                points: stats.totalPoints,
+                points: stats.totalPoints + manualPoints,
                 predictions: stats.totalPredictions,
                 accuracy: stats.accuracy,
                 role: member.role,
@@ -268,8 +279,8 @@ export default function RankingScreen() {
           <View style={styles.previewCard}>
             <Text style={styles.previewTitle}>Ranking del grupo activo</Text>
             <Text style={styles.previewText}>
-              Esta tabla ya usa los integrantes reales del grupo activo y sus
-              predicciones guardadas en Supabase.
+              Esta tabla usa los integrantes reales, sus predicciones y los
+              ajustes manuales hechos por el administrador.
             </Text>
           </View>
         </>
