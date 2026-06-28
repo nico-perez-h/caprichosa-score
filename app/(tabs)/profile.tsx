@@ -212,7 +212,7 @@ export default function ProfileScreen() {
               Muy pronto podrás crear grupos, invitar personas y competir en
               rankings privados.
             </Text>
-          </View>
+          </View> 
         </View>
 
         <View style={styles.settingsCard}>

@@ -1,13 +1,13 @@
-import { router } from 'expo-router';
-import { useEffect, useMemo, useState } from 'react';
-import { Pressable, SectionList, StyleSheet, Text, View } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { router } from "expo-router";
+import { useEffect, useMemo, useState } from "react";
+import { Pressable, SectionList, StyleSheet, Text, View } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 
-import { MatchCard } from '@/components/MatchCard';
-import { ScreenHeader } from '@/components/ScreenHeader';
-import { usePredictions } from '../contexts/PredictionsContext';
-import { getFinishedMatches } from '../services/matchesService';
-import type { Match } from '../types/match';
+import { MatchCard } from "@/components/MatchCard";
+import { ScreenHeader } from "@/components/ScreenHeader";
+import { usePredictions } from "../contexts/PredictionsContext";
+import { getFinishedMatches } from "../services/matchesService";
+import type { Match } from "../types/match";
 
 type ResultsSection = {
   title: string;
@@ -24,8 +24,8 @@ type FilterDropdownProps = {
   onSelect: (value: string) => void;
 };
 
-const ALL_COUNTRIES_OPTION = 'Todos los países';
-const ALL_GROUPS_OPTION = 'Todos los grupos';
+const ALL_COUNTRIES_OPTION = "Todos los países";
+const ALL_GROUPS_OPTION = "Todos los grupos";
 
 function getUniqueCountries(matches: Match[]) {
   const countries = matches.flatMap((match) => [
@@ -84,7 +84,7 @@ function FilterDropdown({
         onPress={onToggle}
       >
         <Text style={styles.dropdownButtonText}>{value}</Text>
-        <Text style={styles.dropdownIcon}>{isOpen ? '▲' : '▼'}</Text>
+        <Text style={styles.dropdownIcon}>{isOpen ? "▲" : "▼"}</Text>
       </Pressable>
 
       {isOpen ? (
@@ -121,8 +121,8 @@ export default function ResultsScreen() {
   const [finishedMatches, setFinishedMatches] = useState<Match[]>([]);
   const [selectedCountry, setSelectedCountry] = useState(ALL_COUNTRIES_OPTION);
   const [selectedGroup, setSelectedGroup] = useState(ALL_GROUPS_OPTION);
-  const [openDropdown, setOpenDropdown] = useState<'country' | 'group' | null>(
-    null
+  const [openDropdown, setOpenDropdown] = useState<"country" | "group" | null>(
+    null,
   );
   const [isLoadingMatches, setIsLoadingMatches] = useState(true);
 
@@ -141,12 +141,12 @@ export default function ResultsScreen() {
 
   const countryOptions = useMemo(
     () => [ALL_COUNTRIES_OPTION, ...getUniqueCountries(finishedMatches)],
-    [finishedMatches]
+    [finishedMatches],
   );
 
   const groupOptions = useMemo(
     () => [ALL_GROUPS_OPTION, ...getUniqueGroups(finishedMatches)],
-    [finishedMatches]
+    [finishedMatches],
   );
 
   const filteredFinishedMatches = filterFinishedMatches({
@@ -156,22 +156,22 @@ export default function ResultsScreen() {
   });
 
   const matchesWithPrediction = filteredFinishedMatches.filter((match) =>
-    Boolean(getPrediction(match.id))
+    Boolean(getPrediction(match.id)),
   );
 
   const matchesWithoutPrediction = filteredFinishedMatches.filter(
-    (match) => !getPrediction(match.id)
+    (match) => !getPrediction(match.id),
   );
 
   const sections: ResultsSection[] = [
     {
-      title: 'Con predicción',
-      description: 'Partidos finalizados donde guardaste una predicción.',
+      title: "Con predicción",
+      description: "Partidos finalizados donde guardaste una predicción.",
       data: matchesWithPrediction,
     },
     {
-      title: 'Sin predicción',
-      description: 'Partidos finalizados donde no guardaste predicción.',
+      title: "Sin predicción",
+      description: "Partidos finalizados donde no guardaste predicción.",
       data: matchesWithoutPrediction,
     },
   ].filter((section) => section.data.length > 0);
@@ -196,6 +196,8 @@ export default function ResultsScreen() {
     selectedCountry !== ALL_COUNTRIES_OPTION ||
     selectedGroup !== ALL_GROUPS_OPTION;
 
+  const hasFinishedMatches = finishedMatches.length > 0;
+
   return (
     <SafeAreaView style={styles.screen}>
       <SectionList
@@ -212,75 +214,79 @@ export default function ResultsScreen() {
 
             <ScreenHeader
               title="Resultados"
-              subtitle="Filtra partidos finalizados por país y grupo."
+              subtitle="Consulta los partidos finalizados y tus puntos obtenidos."
             />
 
-            <View style={styles.summaryCard}>
-              <View style={styles.summaryItem}>
-                <Text style={styles.summaryValue}>
-                  {filteredFinishedMatches.length}
-                </Text>
-                <Text style={styles.summaryLabel}>Finalizados</Text>
+            {hasFinishedMatches ? (
+              <View style={styles.summaryCard}>
+                <View style={styles.summaryItem}>
+                  <Text style={styles.summaryValue}>
+                    {filteredFinishedMatches.length}
+                  </Text>
+                  <Text style={styles.summaryLabel}>Finalizados</Text>
+                </View>
+
+                <View style={styles.summaryDivider} />
+
+                <View style={styles.summaryItem}>
+                  <Text style={styles.summaryValue}>
+                    {matchesWithPrediction.length}
+                  </Text>
+                  <Text style={styles.summaryLabel}>Con predicción</Text>
+                </View>
+
+                <View style={styles.summaryDivider} />
+
+                <View style={styles.summaryItem}>
+                  <Text style={styles.summaryValue}>
+                    {matchesWithoutPrediction.length}
+                  </Text>
+                  <Text style={styles.summaryLabel}>Sin predicción</Text>
+                </View>
               </View>
+            ) : null}
 
-              <View style={styles.summaryDivider} />
+            {hasFinishedMatches ? (
+              <View style={styles.filtersCard}>
+                <Text style={styles.filtersTitle}>Filtros</Text>
 
-              <View style={styles.summaryItem}>
-                <Text style={styles.summaryValue}>
-                  {matchesWithPrediction.length}
-                </Text>
-                <Text style={styles.summaryLabel}>Con predicción</Text>
+                <FilterDropdown
+                  label="País"
+                  value={selectedCountry}
+                  options={countryOptions}
+                  isOpen={openDropdown === "country"}
+                  onToggle={() =>
+                    setOpenDropdown(
+                      openDropdown === "country" ? null : "country",
+                    )
+                  }
+                  onSelect={handleSelectCountry}
+                />
+
+                <FilterDropdown
+                  label="Grupo / Fase"
+                  value={selectedGroup}
+                  options={groupOptions}
+                  isOpen={openDropdown === "group"}
+                  onToggle={() =>
+                    setOpenDropdown(openDropdown === "group" ? null : "group")
+                  }
+                  onSelect={handleSelectGroup}
+                />
+
+                {hasActiveFilters ? (
+                  <Pressable
+                    style={({ pressed }) => [
+                      styles.clearButton,
+                      pressed && styles.buttonPressed,
+                    ]}
+                    onPress={clearFilters}
+                  >
+                    <Text style={styles.clearButtonText}>Limpiar filtros</Text>
+                  </Pressable>
+                ) : null}
               </View>
-
-              <View style={styles.summaryDivider} />
-
-              <View style={styles.summaryItem}>
-                <Text style={styles.summaryValue}>
-                  {matchesWithoutPrediction.length}
-                </Text>
-                <Text style={styles.summaryLabel}>Sin predicción</Text>
-              </View>
-            </View>
-
-            <View style={styles.filtersCard}>
-              <Text style={styles.filtersTitle}>Filtros</Text>
-
-              <FilterDropdown
-                label="País"
-                value={selectedCountry}
-                options={countryOptions}
-                isOpen={openDropdown === 'country'}
-                onToggle={() =>
-                  setOpenDropdown(
-                    openDropdown === 'country' ? null : 'country'
-                  )
-                }
-                onSelect={handleSelectCountry}
-              />
-
-              <FilterDropdown
-                label="Grupo / Fase"
-                value={selectedGroup}
-                options={groupOptions}
-                isOpen={openDropdown === 'group'}
-                onToggle={() =>
-                  setOpenDropdown(openDropdown === 'group' ? null : 'group')
-                }
-                onSelect={handleSelectGroup}
-              />
-
-              {hasActiveFilters ? (
-                <Pressable
-                  style={({ pressed }) => [
-                    styles.clearButton,
-                    pressed && styles.buttonPressed,
-                  ]}
-                  onPress={clearFilters}
-                >
-                  <Text style={styles.clearButtonText}>Limpiar filtros</Text>
-                </Pressable>
-              ) : null}
-            </View>
+            ) : null}
 
             {isLoadingMatches ? (
               <View style={styles.emptyCard}>
@@ -312,13 +318,13 @@ export default function ResultsScreen() {
             <View style={styles.emptyCard}>
               <Text style={styles.emptyTitle}>
                 {hasActiveFilters
-                  ? 'No hay resultados con esos filtros'
-                  : 'Aún no hay resultados'}
+                  ? "No hay resultados con esos filtros"
+                  : "Aún no hay resultados"}
               </Text>
               <Text style={styles.emptyText}>
                 {hasActiveFilters
-                  ? 'Prueba seleccionando otro país o grupo.'
-                  : 'Cuando haya partidos finalizados, aparecerán aquí.'}
+                  ? "Prueba seleccionando otro país o grupo."
+                  : 'Cuando termine el primer partido del Mundial, aparecerá aquí con su resultado.'}
               </Text>
             </View>
           ) : null
@@ -331,7 +337,7 @@ export default function ResultsScreen() {
 const styles = StyleSheet.create({
   screen: {
     flex: 1,
-    backgroundColor: '#F9FAFB',
+    backgroundColor: "#F9FAFB",
   },
   content: {
     paddingHorizontal: 24,
@@ -339,57 +345,57 @@ const styles = StyleSheet.create({
     paddingBottom: 32,
   },
   backButton: {
-    alignSelf: 'flex-start',
+    alignSelf: "flex-start",
     marginBottom: 20,
   },
   backButtonText: {
     fontSize: 16,
-    fontWeight: '700',
-    color: '#111827',
+    fontWeight: "700",
+    color: "#111827",
   },
   summaryCard: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: "#FFFFFF",
     borderRadius: 20,
     padding: 18,
     borderWidth: 1,
-    borderColor: '#E5E7EB',
+    borderColor: "#E5E7EB",
     marginBottom: 16,
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
   },
   summaryItem: {
     flex: 1,
-    alignItems: 'center',
+    alignItems: "center",
   },
   summaryValue: {
     fontSize: 24,
-    fontWeight: '900',
-    color: '#111827',
+    fontWeight: "900",
+    color: "#111827",
   },
   summaryLabel: {
     marginTop: 4,
     fontSize: 12,
-    fontWeight: '800',
-    color: '#6B7280',
-    textAlign: 'center',
+    fontWeight: "800",
+    color: "#6B7280",
+    textAlign: "center",
   },
   summaryDivider: {
     width: 1,
     height: 42,
-    backgroundColor: '#E5E7EB',
+    backgroundColor: "#E5E7EB",
   },
   filtersCard: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: "#FFFFFF",
     borderRadius: 20,
     padding: 18,
     borderWidth: 1,
-    borderColor: '#E5E7EB',
+    borderColor: "#E5E7EB",
     marginBottom: 16,
   },
   filtersTitle: {
     fontSize: 18,
-    fontWeight: '900',
-    color: '#111827',
+    fontWeight: "900",
+    color: "#111827",
     marginBottom: 14,
   },
   dropdownWrapper: {
@@ -397,72 +403,72 @@ const styles = StyleSheet.create({
   },
   dropdownLabel: {
     fontSize: 13,
-    fontWeight: '900',
-    color: '#6B7280',
+    fontWeight: "900",
+    color: "#6B7280",
     marginBottom: 8,
   },
   dropdownButton: {
     minHeight: 48,
     borderRadius: 14,
-    backgroundColor: '#F9FAFB',
+    backgroundColor: "#F9FAFB",
     borderWidth: 1,
-    borderColor: '#E5E7EB',
+    borderColor: "#E5E7EB",
     paddingHorizontal: 14,
     paddingVertical: 12,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
   },
   dropdownButtonText: {
     flex: 1,
     fontSize: 15,
-    fontWeight: '800',
-    color: '#111827',
+    fontWeight: "800",
+    color: "#111827",
     marginRight: 10,
   },
   dropdownIcon: {
     fontSize: 12,
-    fontWeight: '900',
-    color: '#6B7280',
+    fontWeight: "900",
+    color: "#6B7280",
   },
   dropdownOptions: {
     marginTop: 8,
     borderRadius: 14,
     borderWidth: 1,
-    borderColor: '#E5E7EB',
-    backgroundColor: '#FFFFFF',
-    overflow: 'hidden',
+    borderColor: "#E5E7EB",
+    backgroundColor: "#FFFFFF",
+    overflow: "hidden",
   },
   dropdownOption: {
     minHeight: 44,
-    justifyContent: 'center',
+    justifyContent: "center",
     paddingHorizontal: 14,
     borderBottomWidth: 1,
-    borderBottomColor: '#F3F4F6',
+    borderBottomColor: "#F3F4F6",
   },
   selectedDropdownOption: {
-    backgroundColor: '#111827',
+    backgroundColor: "#111827",
   },
   dropdownOptionText: {
     fontSize: 14,
-    fontWeight: '700',
-    color: '#374151',
+    fontWeight: "700",
+    color: "#374151",
   },
   selectedDropdownOptionText: {
-    color: '#FFFFFF',
+    color: "#FFFFFF",
   },
   clearButton: {
     height: 46,
     borderRadius: 14,
-    backgroundColor: '#111827',
-    alignItems: 'center',
-    justifyContent: 'center',
+    backgroundColor: "#111827",
+    alignItems: "center",
+    justifyContent: "center",
     marginTop: 4,
   },
   clearButtonText: {
     fontSize: 15,
-    fontWeight: '900',
-    color: '#FFFFFF',
+    fontWeight: "900",
+    color: "#FFFFFF",
   },
   sectionHeader: {
     marginTop: 4,
@@ -470,38 +476,38 @@ const styles = StyleSheet.create({
   },
   sectionTitle: {
     fontSize: 20,
-    fontWeight: '900',
-    color: '#111827',
+    fontWeight: "900",
+    color: "#111827",
   },
   sectionDescription: {
     marginTop: 4,
     fontSize: 14,
     lineHeight: 20,
-    fontWeight: '600',
-    color: '#6B7280',
+    fontWeight: "600",
+    color: "#6B7280",
   },
   matchWrapper: {
     marginBottom: 14,
   },
   emptyCard: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: "#FFFFFF",
     borderRadius: 20,
     padding: 18,
     borderWidth: 1,
-    borderColor: '#E5E7EB',
+    borderColor: "#E5E7EB",
     marginTop: 8,
     marginBottom: 16,
   },
   emptyTitle: {
     fontSize: 18,
-    fontWeight: '900',
-    color: '#111827',
+    fontWeight: "900",
+    color: "#111827",
     marginBottom: 8,
   },
   emptyText: {
     fontSize: 14,
     lineHeight: 20,
-    color: '#6B7280',
+    color: "#6B7280",
   },
   buttonPressed: {
     opacity: 0.75,
