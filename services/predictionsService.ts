@@ -75,3 +75,20 @@ export async function deleteUserPrediction({
     throw new Error(error.message);
   }
 }
+
+export async function getPredictionsByUserIds(userIds: string[]) {
+  if (userIds.length === 0) {
+    return [];
+  }
+
+  const { data, error } = await supabase
+    .from('predictions')
+    .select('*')
+    .in('user_id', userIds);
+
+  if (error) {
+    throw new Error(error.message);
+  }
+
+  return data as UserPrediction[];
+}
