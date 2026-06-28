@@ -11,6 +11,7 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
+import { usePredictions } from '@/contexts/PredictionsContext';
 import { ScreenHeader } from "@/components/ScreenHeader";
 import { createGroup } from "@/services/groupsService";
 
@@ -18,6 +19,8 @@ export default function CreateGroupScreen() {
   const [groupName, setGroupName] = useState("");
   const [groupDescription, setGroupDescription] = useState("");
   const [isCreating, setIsCreating] = useState(false);
+
+  const { reloadPredictions } = usePredictions();
 
   async function handleCreateGroup() {
     const cleanGroupName = groupName.trim();
@@ -34,6 +37,8 @@ export default function CreateGroupScreen() {
         name: cleanGroupName,
         description: groupDescription,
       });
+
+      await reloadPredictions();
 
       Alert.alert(
         "Grupo creado",

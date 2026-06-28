@@ -11,12 +11,15 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
+import { usePredictions } from "@/contexts/PredictionsContext";
 import { ScreenHeader } from "@/components/ScreenHeader";
 import { findGroupByInviteCode } from "@/services/groupsService";
 
 export default function JoinGroupScreen() {
   const [groupCode, setGroupCode] = useState("");
   const [isJoining, setIsJoining] = useState(false);
+
+  const { reloadPredictions } = usePredictions();
 
   async function handleJoinGroup() {
     const cleanCode = groupCode.trim().toUpperCase();
@@ -41,6 +44,8 @@ export default function JoinGroupScreen() {
         );
         return;
       }
+      
+      await reloadPredictions();
 
       Alert.alert(
         "Te uniste al grupo",
