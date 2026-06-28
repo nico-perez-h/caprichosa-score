@@ -12,6 +12,7 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import { ScreenHeader } from "@/components/ScreenHeader";
+import { supabase } from "@/lib/supabase";
 import { matches } from "@/data/matches";
 import { useAuth } from "@/contexts/AuthContext";
 import { usePredictions } from "@/contexts/PredictionsContext";
@@ -38,12 +39,37 @@ export default function ProfileScreen() {
   const { user, signOut } = useAuth();
 
   const [nameInput, setNameInput] = useState(playerName);
+  const [isSuperAdmin, setIsSuperAdmin] = useState(false);
 
   const stats = calculatePredictionStats(matches, predictions);
-  
+
   useEffect(() => {
     setNameInput(playerName);
   }, [playerName]);
+
+  useEffect(() => {
+    async function loadUserRole() {
+      if (!user) {
+        setIsSuperAdmin(false);
+        return;
+      }
+
+      const { data, error } = await supabase
+        .from("profiles")
+        .select("app_role")
+        .eq("id", user.id)
+        .single();
+
+      if (error) {
+        setIsSuperAdmin(false);
+        return;
+      }
+
+      setIsSuperAdmin(data?.app_role === "super_admin");
+    }
+
+    loadUserRole();
+  }, [user]);
 
   function handleSaveName() {
     savePlayerName(nameInput);
@@ -78,8 +104,6 @@ export default function ProfileScreen() {
       ],
     );
   }
-
-
 
   function handleSignOut() {
     Alert.alert(
@@ -206,13 +230,33 @@ export default function ProfileScreen() {
             </Text>
           </View>
 
+          {isSuperAdmin ? (
+            <View style={styles.settingItem}>
+              <Text style={styles.settingTitle}>Panel interno</Text>
+              <Text style={styles.settingDescription}>
+                Carga resultados reales manualmente y controla datos internos de
+                la app.
+              </Text>
+
+              <Pressable
+                style={({ pressed }) => [
+                  styles.groupButton,
+                  pressed && styles.buttonPressed,
+                ]}
+                onPress={() => router.push("/super-admin-results" as never)}
+              >
+                <Text style={styles.groupButtonText}>Cargar resultados</Text>
+              </Pressable>
+            </View>
+          ) : null}
+
           <View style={styles.announcementItem}>
             <Text style={styles.announcementTitle}>Grupos con amigos</Text>
             <Text style={styles.announcementDescription}>
               Muy pronto podrás crear grupos, invitar personas y competir en
               rankings privados.
             </Text>
-          </View> 
+          </View>
         </View>
 
         <View style={styles.settingsCard}>
