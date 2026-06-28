@@ -1,6 +1,13 @@
 import { router } from "expo-router";
-import { useEffect, useMemo, useState } from "react";
-import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import {
+  Pressable,
+  RefreshControl,
+  ScrollView,
+  StyleSheet,
+  Text,
+  View,
+} from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import { MatchCard } from "@/components/MatchCard";
@@ -221,11 +228,12 @@ export default function MatchesScreen() {
   const [searchTerm, setSearchTerm] = useState("");
   const [isStatusDropdownOpen, setIsStatusDropdownOpen] = useState(false);
   const [isLoadingMatches, setIsLoadingMatches] = useState(true);
+  const [isRefreshing, setIsRefreshing] = useState(false);
 
-  useEffect(() => {
-    async function loadMatches() {
-      setIsLoadingMatches(true);
+  const loadMatches = useCallback(async () => {
+    setIsLoadingMatches(true);
 
+    try {
       const [loadedTodayMatches, loadedUpcomingMatches] = await Promise.all([
         getTodayMatches(),
         getPredictableMatchesOnly(),
@@ -237,11 +245,24 @@ export default function MatchesScreen() {
 
       setTodayMatches(loadedTodayMatches);
       setUpcomingMatches(confirmedUpcomingMatches);
+    } finally {
       setIsLoadingMatches(false);
     }
-
-    loadMatches();
   }, []);
+
+  async function handleRefresh() {
+    try {
+      setIsRefreshing(true);
+
+      await loadMatches();
+    } finally {
+      setIsRefreshing(false);
+    }
+  }
+
+  useEffect(() => {
+    loadMatches();
+  }, [loadMatches]);
 
   function hasPrediction(matchId: string) {
     return Boolean((predictions as Record<string, Prediction>)[matchId]);
@@ -279,6 +300,14 @@ export default function MatchesScreen() {
         style={styles.scroll}
         contentContainerStyle={styles.content}
         showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl
+            refreshing={isRefreshing}
+            onRefresh={handleRefresh}
+            tintColor="#111827"
+            colors={["#111827"]}
+          />
+        }
       >
         <ScreenHeader
           title="Partidos"

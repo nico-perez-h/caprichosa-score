@@ -2,6 +2,7 @@ import { useFocusEffect } from "expo-router";
 import { useCallback, useEffect, useState } from "react";
 import {
   ActivityIndicator,
+  RefreshControl,
   ScrollView,
   StyleSheet,
   Text,
@@ -10,10 +11,10 @@ import {
 
 import { ScreenHeader } from "@/components/ScreenHeader";
 import { useAuth } from "@/contexts/AuthContext";
+import { getGroupPointAdjustments } from "@/services/groupAdjustmentsService";
 import { getCurrentGroupData } from "@/services/groupsService";
 import { getMatches } from "@/services/matchesService";
 import { getPredictionsByUserIds } from "@/services/predictionsService";
-import { getGroupPointAdjustments } from "@/services/groupAdjustmentsService";
 import type { Match } from "@/types/match";
 import { calculatePredictionStats } from "../../utils/predictionStats";
 
@@ -35,127 +36,150 @@ function getPositionLabel(position: number) {
 export default function RankingScreen() {
   const { user } = useAuth();
 
-  const [allMatches, setAllMatches] = useState<Match[]>([]);
   const [rankingPlayers, setRankingPlayers] = useState<RankingPlayer[]>([]);
   const [groupName, setGroupName] = useState("");
   const [isLoadingMatches, setIsLoadingMatches] = useState(true);
   const [isLoadingRanking, setIsLoadingRanking] = useState(true);
+  const [isRefreshing, setIsRefreshing] = useState(false);
 
-  useEffect(() => {
-    async function loadMatches() {
-      setIsLoadingMatches(true);
+  const loadMatches = useCallback(async () => {
+    setIsLoadingMatches(true);
 
+    try {
       const loadedMatches = await getMatches();
 
-      setAllMatches(loadedMatches);
+      return loadedMatches;
+    } finally {
       setIsLoadingMatches(false);
     }
-
-    loadMatches();
   }, []);
 
-  useFocusEffect(
-    useCallback(() => {
-      async function loadRanking() {
-        if (allMatches.length === 0) {
+  const loadRanking = useCallback(
+    async (matchesForRanking: Match[]) => {
+      if (matchesForRanking.length === 0) {
+        setRankingPlayers([]);
+        setGroupName("");
+        setIsLoadingRanking(false);
+        return;
+      }
+
+      try {
+        setIsLoadingRanking(true);
+
+        const groupData = await getCurrentGroupData();
+
+        if (!groupData) {
+          setRankingPlayers([]);
+          setGroupName("");
           return;
         }
 
-        try {
-          setIsLoadingRanking(true);
+        setGroupName(groupData.group.name);
 
-          const groupData = await getCurrentGroupData();
+        const memberUserIds = groupData.members.map((member) => member.userId);
 
-          if (!groupData) {
-            setRankingPlayers([]);
-            setGroupName("");
-            return;
-          }
+        const allPredictions = await getPredictionsByUserIds({
+          userIds: memberUserIds,
+          groupId: groupData.group.id,
+        });
 
-          setGroupName(groupData.group.name);
+        const pointAdjustments = await getGroupPointAdjustments(
+          groupData.group.id,
+        );
 
-          const memberUserIds = groupData.members.map(
-            (member) => member.userId,
-          );
+        const players = groupData.members
+          .map((member) => {
+            const memberPredictions = allPredictions.filter(
+              (prediction) => prediction.user_id === member.userId,
+            );
 
-          const allPredictions = await getPredictionsByUserIds({
-            userIds: memberUserIds,
-            groupId: groupData.group.id,
-          });
+            const predictionsRecord = memberPredictions.reduce(
+              (record, prediction) => {
+                record[prediction.match_id] = {
+                  matchId: prediction.match_id,
+                  homeScore: prediction.home_score,
+                  awayScore: prediction.away_score,
+                };
 
-          const pointAdjustments = await getGroupPointAdjustments(
-            groupData.group.id,
-          );
+                return record;
+              },
+              {} as Record<
+                string,
+                { matchId: string; homeScore: number; awayScore: number }
+              >,
+            );
 
-          const players = groupData.members
-            .map((member) => {
-              const memberPredictions = allPredictions.filter(
-                (prediction) => prediction.user_id === member.userId,
-              );
+            const stats = calculatePredictionStats(
+              matchesForRanking,
+              predictionsRecord,
+            );
 
-              const predictionsRecord = memberPredictions.reduce(
-                (record, prediction) => {
-                  record[prediction.match_id] = {
-                    matchId: prediction.match_id,
-                    homeScore: prediction.home_score,
-                    awayScore: prediction.away_score,
-                  };
+            const manualPoints = pointAdjustments
+              .filter(
+                (adjustment) => adjustment.target_user_id === member.userId,
+              )
+              .reduce((total, adjustment) => total + adjustment.points, 0);
 
-                  return record;
-                },
-                {} as Record<
-                  string,
-                  { matchId: string; homeScore: number; awayScore: number }
-                >,
-              );
+            return {
+              id: member.userId,
+              name: member.playerName,
+              points: stats.totalPoints + manualPoints,
+              predictions: stats.totalPredictions,
+              accuracy: stats.accuracy,
+              role: member.role,
+              isCurrentUser: member.userId === user?.id,
+            };
+          })
+          .sort((firstPlayer, secondPlayer) => {
+            if (secondPlayer.points !== firstPlayer.points) {
+              return secondPlayer.points - firstPlayer.points;
+            }
 
-              const stats = calculatePredictionStats(
-                allMatches,
-                predictionsRecord,
-              );
+            if (secondPlayer.accuracy !== firstPlayer.accuracy) {
+              return secondPlayer.accuracy - firstPlayer.accuracy;
+            }
 
-              const manualPoints = pointAdjustments
-                .filter(
-                  (adjustment) => adjustment.target_user_id === member.userId,
-                )
-                .reduce((total, adjustment) => total + adjustment.points, 0);
+            return secondPlayer.predictions - firstPlayer.predictions;
+          })
+          .map((player, index) => ({
+            ...player,
+            position: index + 1,
+          }));
 
-              return {
-                id: member.userId,
-                name: member.playerName,
-                points: stats.totalPoints + manualPoints,
-                predictions: stats.totalPredictions,
-                accuracy: stats.accuracy,
-                role: member.role,
-                isCurrentUser: member.userId === user?.id,
-              };
-            })
-            .sort((firstPlayer, secondPlayer) => {
-              if (secondPlayer.points !== firstPlayer.points) {
-                return secondPlayer.points - firstPlayer.points;
-              }
-
-              if (secondPlayer.accuracy !== firstPlayer.accuracy) {
-                return secondPlayer.accuracy - firstPlayer.accuracy;
-              }
-
-              return secondPlayer.predictions - firstPlayer.predictions;
-            })
-            .map((player, index) => ({
-              ...player,
-              position: index + 1,
-            }));
-
-          setRankingPlayers(players);
-        } catch {
-          setRankingPlayers([]);
-        } finally {
-          setIsLoadingRanking(false);
-        }
+        setRankingPlayers(players);
+      } catch {
+        setRankingPlayers([]);
+      } finally {
+        setIsLoadingRanking(false);
       }
+    },
+    [user?.id],
+  );
 
-      loadRanking();
-    }, [allMatches, user?.id]),
+  const loadRankingScreen = useCallback(async () => {
+    const loadedMatches = await loadMatches();
+
+    await loadRanking(loadedMatches);
+  }, [loadMatches, loadRanking]);
+
+  async function handleRefresh() {
+    try {
+      setIsRefreshing(true);
+
+      await loadRankingScreen();
+    } finally {
+      setIsRefreshing(false);
+    }
+  }
+
+  useEffect(() => {
+    loadRankingScreen();
+  }, [loadRankingScreen]);
+
+  useFocusEffect(
+    useCallback(() => {
+      loadRankingScreen();
+    }, [loadRankingScreen]),
   );
 
   const currentUserRank = rankingPlayers.find((player) => player.isCurrentUser);
@@ -167,6 +191,14 @@ export default function RankingScreen() {
       style={styles.screen}
       contentContainerStyle={styles.content}
       showsVerticalScrollIndicator={false}
+      refreshControl={
+        <RefreshControl
+          refreshing={isRefreshing}
+          onRefresh={handleRefresh}
+          tintColor="#111827"
+          colors={["#111827"]}
+        />
+      }
     >
       <ScreenHeader
         title="Ranking"
@@ -280,7 +312,8 @@ export default function RankingScreen() {
             <Text style={styles.previewTitle}>Ranking del grupo activo</Text>
             <Text style={styles.previewText}>
               Esta tabla usa los integrantes reales, sus predicciones y los
-              ajustes manuales hechos por el administrador.
+              ajustes manuales hechos por el administrador. Desliza hacia abajo
+              para actualizar.
             </Text>
           </View>
         </>
