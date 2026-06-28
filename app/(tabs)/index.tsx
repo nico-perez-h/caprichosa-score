@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import {
   ActivityIndicator,
   Pressable,
+  RefreshControl,
   ScrollView,
   StyleSheet,
   Text,
@@ -65,11 +66,12 @@ export default function HomeScreen() {
   const [activeGroup, setActiveGroup] = useState<Group | null>(null);
   const [isLoadingMatches, setIsLoadingMatches] = useState(true);
   const [isLoadingGroup, setIsLoadingGroup] = useState(true);
+  const [isRefreshing, setIsRefreshing] = useState(false);
 
-  useEffect(() => {
-    async function loadMatches() {
-      setIsLoadingMatches(true);
+  async function loadMatches() {
+    setIsLoadingMatches(true);
 
+    try {
       const [loadedMatches, loadedTodayMatches] = await Promise.all([
         getMatches(),
         getTodayMatches(),
@@ -77,28 +79,41 @@ export default function HomeScreen() {
 
       setAllMatches(loadedMatches);
       setTodayMatches(loadedTodayMatches.filter(isConfirmedMatch));
+    } finally {
       setIsLoadingMatches(false);
     }
+  }
 
+  async function loadActiveGroup() {
+    try {
+      setIsLoadingGroup(true);
+
+      const currentGroup = await getCurrentGroup();
+
+      setActiveGroup(currentGroup);
+    } catch {
+      setActiveGroup(null);
+    } finally {
+      setIsLoadingGroup(false);
+    }
+  }
+
+  async function handleRefresh() {
+    try {
+      setIsRefreshing(true);
+
+      await Promise.all([loadMatches(), loadActiveGroup()]);
+    } finally {
+      setIsRefreshing(false);
+    }
+  }
+
+  useEffect(() => {
     loadMatches();
   }, []);
 
   useFocusEffect(
     useCallback(() => {
-      async function loadActiveGroup() {
-        try {
-          setIsLoadingGroup(true);
-
-          const currentGroup = await getCurrentGroup();
-
-          setActiveGroup(currentGroup);
-        } catch {
-          setActiveGroup(null);
-        } finally {
-          setIsLoadingGroup(false);
-        }
-      }
-
       loadActiveGroup();
     }, [])
   );
@@ -112,6 +127,14 @@ export default function HomeScreen() {
       style={styles.screen}
       contentContainerStyle={styles.content}
       showsVerticalScrollIndicator={false}
+      refreshControl={
+        <RefreshControl
+          refreshing={isRefreshing}
+          onRefresh={handleRefresh}
+          tintColor="#111827"
+          colors={["#111827"]}
+        />
+      }
     >
       <View style={styles.logoBox}>
         <MaterialCommunityIcons name="soccer" size={40} color="#FFFFFF" />
@@ -179,7 +202,7 @@ export default function HomeScreen() {
       <View style={styles.sectionHeader}>
         <Text style={styles.sectionTitle}>Partidos de hoy</Text>
         <Text style={styles.sectionDescription}>
-          Los encuentros programados para este día.
+          Desliza hacia abajo para actualizar marcadores y estados.
         </Text>
       </View>
 

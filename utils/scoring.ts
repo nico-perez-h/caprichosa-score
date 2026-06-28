@@ -19,8 +19,15 @@ export function calculatePredictionPoints(
   match: Match,
   prediction: Prediction | null
 ) {
+  if (!prediction) {
+    return null;
+  }
+
+  if (match.status !== 'Finalizado') {
+    return null;
+  }
+
   if (
-    !prediction ||
     match.actualHomeScore === undefined ||
     match.actualAwayScore === undefined
   ) {
@@ -59,4 +66,4 @@ export function calculateTotalPredictionPoints(
 
     return totalPoints + (points ?? 0);
   }, 0);
-}
+} 

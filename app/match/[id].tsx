@@ -1,5 +1,5 @@
-import { router, useLocalSearchParams } from 'expo-router';
-import { useEffect, useState } from 'react';
+import { router, useLocalSearchParams } from "expo-router";
+import { useEffect, useState } from "react";
 import {
   Alert,
   Image,
@@ -8,28 +8,28 @@ import {
   StyleSheet,
   Text,
   View,
-} from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+} from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 
-import { PredictionCard } from '@/components/PredictionCard';
-import { PredictionPointsSummary } from '@/components/PredictionPointsSummary';
-import { PredictionStatusNotice } from '@/components/PredictionStatusNotice';
-import { ScreenHeader } from '@/components/ScreenHeader';
-import { StatusBadge } from '@/components/StatusBadge';
-import { usePredictions } from '../../contexts/PredictionsContext';
-import { getMatchById } from '../../services/matchesService';
-import type { Match } from '../../types/match';
+import { PredictionCard } from "@/components/PredictionCard";
+import { PredictionPointsSummary } from "@/components/PredictionPointsSummary";
+import { PredictionStatusNotice } from "@/components/PredictionStatusNotice";
+import { ScreenHeader } from "@/components/ScreenHeader";
+import { StatusBadge } from "@/components/StatusBadge";
+import { usePredictions } from "../../contexts/PredictionsContext";
+import { getMatchById } from "../../services/matchesService";
+import type { Match } from "../../types/match";
 
 function getLocationText(match: Match) {
   const locationParts = [match.stadium, match.city].filter(
     (item) =>
       item &&
-      item !== 'Estadio no disponible' &&
-      item !== 'Ciudad no disponible' &&
-      item !== 'No disponible'
+      item !== "Estadio no disponible" &&
+      item !== "Ciudad no disponible" &&
+      item !== "No disponible",
   );
 
-  return locationParts.join(' · ');
+  return locationParts.join(" · ");
 }
 
 function hasRealLocation(match: Match) {
@@ -128,7 +128,7 @@ export default function MatchDetailScreen() {
 
   const currentMatch = match;
   const savedPrediction = getPrediction(currentMatch.id);
-  const isPredictionLocked = currentMatch.status !== 'Por jugar';
+  const isPredictionLocked = currentMatch.status !== "Por jugar";
   const locationText = getLocationText(currentMatch);
 
   function decreaseHomeScore() {
@@ -150,8 +150,8 @@ export default function MatchDetailScreen() {
   function savePrediction() {
     if (isPredictionLocked) {
       Alert.alert(
-        'Predicciones cerradas',
-        'Ya no puedes guardar predicciones para este partido.'
+        "Predicciones cerradas",
+        "Ya no puedes guardar predicciones para este partido.",
       );
       return;
     }
@@ -163,16 +163,16 @@ export default function MatchDetailScreen() {
     });
 
     Alert.alert(
-      'Predicción guardada',
-      `${currentMatch.homeTeam} ${homeScore} - ${awayScore} ${currentMatch.awayTeam}`
+      "Predicción guardada",
+      `${currentMatch.homeTeam} ${homeScore} - ${awayScore} ${currentMatch.awayTeam}`,
     );
   }
 
   function deletePrediction() {
     if (isPredictionLocked) {
       Alert.alert(
-        'Predicciones cerradas',
-        'Ya no puedes eliminar predicciones para este partido.'
+        "Predicciones cerradas",
+        "Ya no puedes eliminar predicciones para este partido.",
       );
       return;
     }
@@ -181,7 +181,7 @@ export default function MatchDetailScreen() {
     setHomeScore(0);
     setAwayScore(0);
 
-    Alert.alert('Predicción eliminada', 'Tu predicción fue eliminada.');
+    Alert.alert("Predicción eliminada", "Tu predicción fue eliminada.");
   }
 
   return (
@@ -230,9 +230,15 @@ export default function MatchDetailScreen() {
           {currentMatch.actualHomeScore !== undefined &&
           currentMatch.actualAwayScore !== undefined ? (
             <View style={styles.finalScoreBox}>
-              <Text style={styles.finalScoreLabel}>Resultado final</Text>
+              <Text style={styles.finalScoreLabel}>
+                {currentMatch.status === "Finalizado"
+                  ? "Resultado final"
+                  : currentMatch.status === "En vivo"
+                    ? "Marcador en vivo"
+                    : "Marcador cargado"}
+              </Text>
               <Text style={styles.finalScoreText}>
-                {currentMatch.homeTeam} {currentMatch.actualHomeScore} -{' '}
+                {currentMatch.homeTeam} {currentMatch.actualHomeScore} -{" "}
                 {currentMatch.actualAwayScore} {currentMatch.awayTeam}
               </Text>
             </View>
@@ -251,10 +257,20 @@ export default function MatchDetailScreen() {
 
         <PredictionStatusNotice status={currentMatch.status} />
 
-        <PredictionPointsSummary
-          match={currentMatch}
-          savedPrediction={savedPrediction}
-        />
+        {currentMatch.status === "Finalizado" ? (
+          <PredictionPointsSummary
+            match={currentMatch}
+            savedPrediction={savedPrediction}
+          />
+        ) : (
+          <View style={styles.pendingPointsCard}>
+            <Text style={styles.pendingPointsTitle}>Puntos pendientes</Text>
+            <Text style={styles.pendingPointsText}>
+              El marcador puede actualizarse en vivo, pero los puntos se
+              calcularán recién cuando el partido finalice.
+            </Text>
+          </View>
+        )}
 
         <PredictionCard
           homeTeam={currentMatch.homeTeam}
@@ -278,7 +294,7 @@ export default function MatchDetailScreen() {
 const styles = StyleSheet.create({
   screen: {
     flex: 1,
-    backgroundColor: '#F9FAFB',
+    backgroundColor: "#F9FAFB",
   },
   scroll: {
     flex: 1,
@@ -290,36 +306,36 @@ const styles = StyleSheet.create({
   },
   notFoundScreen: {
     flex: 1,
-    backgroundColor: '#F9FAFB',
+    backgroundColor: "#F9FAFB",
     paddingHorizontal: 24,
     paddingTop: 24,
   },
   backButton: {
-    alignSelf: 'flex-start',
+    alignSelf: "flex-start",
     marginBottom: 20,
   },
   backButtonText: {
     fontSize: 16,
-    fontWeight: '700',
-    color: '#111827',
+    fontWeight: "700",
+    color: "#111827",
   },
   notFoundTitle: {
     fontSize: 24,
-    fontWeight: '800',
-    color: '#111827',
+    fontWeight: "800",
+    color: "#111827",
   },
   matchCard: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: "#FFFFFF",
     borderRadius: 20,
     padding: 18,
     borderWidth: 1,
-    borderColor: '#E5E7EB',
+    borderColor: "#E5E7EB",
     marginBottom: 16,
   },
   matchHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
     gap: 12,
     marginBottom: 18,
   },
@@ -328,25 +344,25 @@ const styles = StyleSheet.create({
   },
   tournamentText: {
     fontSize: 13,
-    fontWeight: '700',
-    color: '#6B7280',
+    fontWeight: "700",
+    color: "#6B7280",
   },
   groupText: {
     marginTop: 2,
     fontSize: 14,
-    fontWeight: '900',
-    color: '#111827',
+    fontWeight: "900",
+    color: "#111827",
   },
   teamsBox: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
     gap: 10,
   },
   teamBox: {
     flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: "center",
+    justifyContent: "center",
     gap: 8,
   },
   flag: {
@@ -354,8 +370,8 @@ const styles = StyleSheet.create({
     height: 30,
     borderRadius: 5,
     borderWidth: 1,
-    borderColor: '#E5E7EB',
-    backgroundColor: '#F9FAFB',
+    borderColor: "#E5E7EB",
+    backgroundColor: "#F9FAFB",
   },
   flagPlaceholder: {
     width: 42,
@@ -363,31 +379,31 @@ const styles = StyleSheet.create({
   },
   teamName: {
     fontSize: 18,
-    fontWeight: '900',
-    color: '#111827',
-    textAlign: 'center',
+    fontWeight: "900",
+    color: "#111827",
+    textAlign: "center",
   },
   vsText: {
     fontSize: 13,
-    fontWeight: '800',
-    color: '#9CA3AF',
+    fontWeight: "800",
+    color: "#9CA3AF",
   },
   finalScoreBox: {
     marginTop: 16,
     borderRadius: 16,
-    backgroundColor: '#ECFDF5',
+    backgroundColor: "#ECFDF5",
     padding: 14,
   },
   finalScoreLabel: {
     fontSize: 12,
-    fontWeight: '900',
-    color: '#047857',
+    fontWeight: "900",
+    color: "#047857",
     marginBottom: 4,
   },
   finalScoreText: {
     fontSize: 15,
-    fontWeight: '900',
-    color: '#065F46',
+    fontWeight: "900",
+    color: "#065F46",
   },
   infoBox: {
     marginTop: 16,
@@ -396,8 +412,28 @@ const styles = StyleSheet.create({
   infoText: {
     fontSize: 14,
     lineHeight: 20,
-    fontWeight: '600',
-    color: '#6B7280',
-    textAlign: 'center',
+    fontWeight: "600",
+    color: "#6B7280",
+    textAlign: "center",
+  },
+  pendingPointsCard: {
+    backgroundColor: "#FFFFFF",
+    borderRadius: 20,
+    padding: 18,
+    borderWidth: 1,
+    borderColor: "#E5E7EB",
+    marginBottom: 16,
+  },
+  pendingPointsTitle: {
+    fontSize: 17,
+    fontWeight: "900",
+    color: "#111827",
+    marginBottom: 6,
+  },
+  pendingPointsText: {
+    fontSize: 14,
+    lineHeight: 20,
+    fontWeight: "600",
+    color: "#6B7280",
   },
 });
