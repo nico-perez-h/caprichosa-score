@@ -23,7 +23,9 @@ import {
   deleteGroup,
   getCurrentGroupData,
   leaveGroup,
+  removeGroupMemberFromGroup,
   type CurrentGroupData,
+  type GroupMemberWithProfile,
 } from "@/services/groupsService";
 
 function formatAnnouncementDate(dateText: string) {
@@ -47,6 +49,7 @@ export default function GroupScreen() {
   const [announcements, setAnnouncements] = useState<GroupAnnouncement[]>([]);
   const [isLoadingGroup, setIsLoadingGroup] = useState(true);
   const [isLeavingOrDeleting, setIsLeavingOrDeleting] = useState(false);
+  const [removingMemberId, setRemovingMemberId] = useState<string | null>(null);
 
   async function loadGroup() {
     try {
@@ -178,6 +181,53 @@ export default function GroupScreen() {
               Alert.alert("Error", errorMessage);
             } finally {
               setIsLeavingOrDeleting(false);
+            }
+          },
+        },
+      ]
+    );
+  }
+
+  function handleRemoveMember(member: GroupMemberWithProfile) {
+    if (!groupData) {
+      return;
+    }
+
+    Alert.alert(
+      "Quitar integrante",
+      `¿Seguro que quieres quitar a ${member.playerName} del grupo ${groupData.group.name}?`,
+      [
+        {
+          text: "Cancelar",
+          style: "cancel",
+        },
+        {
+          text: "Quitar",
+          style: "destructive",
+          onPress: async () => {
+            try {
+              setRemovingMemberId(member.userId);
+
+              await removeGroupMemberFromGroup({
+                groupId: groupData.group.id,
+                targetUserId: member.userId,
+              });
+
+              Alert.alert(
+                "Integrante quitado",
+                `${member.playerName} ya no pertenece a este grupo.`
+              );
+
+              await loadGroup();
+            } catch (error) {
+              const errorMessage =
+                error instanceof Error
+                  ? error.message
+                  : "No se pudo quitar al integrante.";
+
+              Alert.alert("Error", errorMessage);
+            } finally {
+              setRemovingMemberId(null);
             }
           },
         },
@@ -396,19 +446,40 @@ export default function GroupScreen() {
         <View style={styles.membersCard}>
           <Text style={styles.cardTitle}>Integrantes</Text>
 
-          {groupData.members.map((member, index) => (
-            <View key={member.id} style={styles.memberRow}>
-              <Text style={styles.memberPosition}>#{index + 1}</Text>
+          {groupData.members.map((member, index) => {
+            const canRemoveMember = isAdmin && member.role === "member";
+            const isRemovingThisMember = removingMemberId === member.userId;
 
-              <View style={styles.memberInfo}>
-                <Text style={styles.memberName}>{member.playerName}</Text>
+            return (
+              <View key={member.id} style={styles.memberRow}>
+                <Text style={styles.memberPosition}>#{index + 1}</Text>
 
-                <Text style={styles.memberMeta}>
-                  {member.role === "admin" ? "Administrador" : "Miembro"}
-                </Text>
+                <View style={styles.memberInfo}>
+                  <Text style={styles.memberName}>{member.playerName}</Text>
+
+                  <Text style={styles.memberMeta}>
+                    {member.role === "admin" ? "Administrador" : "Miembro"}
+                  </Text>
+                </View>
+
+                {canRemoveMember ? (
+                  <Pressable
+                    style={({ pressed }) => [
+                      styles.removeMemberButton,
+                      pressed && styles.buttonPressed,
+                      isRemovingThisMember && styles.disabledButton,
+                    ]}
+                    onPress={() => handleRemoveMember(member)}
+                    disabled={isRemovingThisMember}
+                  >
+                    <Text style={styles.removeMemberButtonText}>
+                      {isRemovingThisMember ? "..." : "Quitar"}
+                    </Text>
+                  </Pressable>
+                ) : null}
               </View>
-            </View>
-          ))}
+            );
+          })}
         </View>
 
         <View style={styles.announcementsCard}>
@@ -765,6 +836,22 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: "700",
     color: "#6B7280",
+  },
+  removeMemberButton: {
+    minWidth: 72,
+    height: 36,
+    borderRadius: 999,
+    backgroundColor: "#FEF2F2",
+    borderWidth: 1,
+    borderColor: "#FECACA",
+    alignItems: "center",
+    justifyContent: "center",
+    paddingHorizontal: 12,
+  },
+  removeMemberButtonText: {
+    fontSize: 13,
+    fontWeight: "900",
+    color: "#991B1B",
   },
   announcementsCard: {
     backgroundColor: "#FFFFFF",

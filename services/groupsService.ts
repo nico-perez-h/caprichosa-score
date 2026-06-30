@@ -114,7 +114,7 @@ async function setActiveGroupId({
   groupId,
 }: {
   userId: string;
-  groupId: string;
+  groupId: string | null;
 }) {
   const { error } = await supabase
     .from('profiles')
@@ -212,6 +212,27 @@ async function getMembershipByGroupId({
   };
 }
 
+async function getGroupMemberByUserId({
+  groupId,
+  userId,
+}: {
+  groupId: string;
+  userId: string;
+}) {
+  const { data, error } = await supabase
+    .from('group_members')
+    .select('id, group_id, user_id, role, joined_at')
+    .eq('group_id', groupId)
+    .eq('user_id', userId)
+    .maybeSingle();
+
+  if (error) {
+    throw new Error(error.message);
+  }
+
+  return data as SupabaseGroupMember | null;
+}
+
 export async function getCurrentGroup(): Promise<Group | null> {
   const userId = await getCurrentUserId();
   const activeGroupId = await getActiveGroupId(userId);
@@ -272,7 +293,7 @@ export async function getGroupMembers(groupId: string) {
 
   return typedMembers.map<GroupMemberWithProfile>((member) => {
     const profile = typedProfiles.find(
-      (profileItem) => profileItem.id === member.user_id
+      (profileItem) => profileItem.id === member.user_id,
     );
 
     return {
@@ -470,6 +491,7 @@ export async function createGroup(input: CreateGroupInput): Promise<Group> {
 
   return mapSupabaseGroupToAppGroup(group as SupabaseGroup);
 }
+
 export async function leaveGroup(groupId: string) {
   const userId = await getCurrentUserId();
 
@@ -488,17 +510,10 @@ export async function leaveGroup(groupId: string) {
   if (activeGroupId === groupId) {
     const latestMembership = await getLatestMembership(userId);
 
-    const { error: profileError } = await supabase
-      .from('profiles')
-      .update({
-        active_group_id: latestMembership?.group.id ?? null,
-        updated_at: new Date().toISOString(),
-      })
-      .eq('id', userId);
-
-    if (profileError) {
-      throw new Error(profileError.message);
-    }
+    await setActiveGroupId({
+      userId,
+      groupId: latestMembership?.group.id ?? null,
+    });
   }
 }
 
@@ -514,10 +529,55 @@ export async function deleteGroup(groupId: string) {
     throw new Error('Solo el administrador puede eliminar este grupo.');
   }
 
+  const { error } = await supabase.from('groups').delete().eq('id', groupId);
+
+  if (error) {
+    throw new Error(error.message);
+  }
+}
+
+export async function removeGroupMemberFromGroup({
+  groupId,
+  targetUserId,
+}: {
+  groupId: string;
+  targetUserId: string;
+}) {
+  const adminUserId = await getCurrentUserId();
+
+  if (adminUserId === targetUserId) {
+    throw new Error(
+      'No puedes quitarte a ti mismo desde aquí. Usa la opción de eliminar grupo o salir del grupo.',
+    );
+  }
+
+  const adminMembership = await getMembershipByGroupId({
+    userId: adminUserId,
+    groupId,
+  });
+
+  if (!adminMembership || adminMembership.role !== 'admin') {
+    throw new Error('Solo el administrador puede quitar integrantes.');
+  }
+
+  const targetMembership = await getGroupMemberByUserId({
+    groupId,
+    userId: targetUserId,
+  });
+
+  if (!targetMembership) {
+    throw new Error('Este usuario ya no pertenece al grupo.');
+  }
+
+  if (targetMembership.role === 'admin') {
+    throw new Error('No puedes quitar a otro administrador del grupo.');
+  }
+
   const { error } = await supabase
-    .from('groups')
+    .from('group_members')
     .delete()
-    .eq('id', groupId);
+    .eq('group_id', groupId)
+    .eq('user_id', targetUserId);
 
   if (error) {
     throw new Error(error.message);
