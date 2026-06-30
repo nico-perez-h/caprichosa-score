@@ -2,7 +2,6 @@ import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { router } from "expo-router";
 import { useCallback, useEffect, useState } from "react";
 import {
-  Alert,
   Pressable,
   RefreshControl,
   ScrollView,
@@ -172,10 +171,7 @@ export default function PredictionsScreen() {
   }, [loadMatches, loadManualPoints]);
 
   function showScoringRules() {
-    Alert.alert(
-      "Reglas de puntuación",
-      "∙Marcador exacto: 9 puntos\n ∙Ganador o empate correcto + diferencia correcta: 4 puntos\n ∙Ganador o empate correcto: 3 puntos\n ∙Resultado incorrecto: 0 puntos",
-    );
+    router.push("/rules" as never);
   }
 
   const predictedMatches = allMatches.filter((match) =>
