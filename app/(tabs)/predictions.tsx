@@ -1,6 +1,6 @@
-import { MaterialCommunityIcons } from '@expo/vector-icons';
-import { router } from 'expo-router';
-import { useCallback, useEffect, useState } from 'react';
+import { MaterialCommunityIcons } from "@expo/vector-icons";
+import { router } from "expo-router";
+import { useCallback, useEffect, useState } from "react";
 import {
   Alert,
   Pressable,
@@ -9,30 +9,30 @@ import {
   StyleSheet,
   Text,
   View,
-} from 'react-native';
+} from "react-native";
 
-import { MatchCard } from '@/components/MatchCard';
-import { ScreenHeader } from '@/components/ScreenHeader';
-import { useAuth } from '@/contexts/AuthContext';
-import { getGroupPointAdjustments } from '@/services/groupAdjustmentsService';
-import { getCurrentGroup } from '@/services/groupsService';
-import { getMatches } from '@/services/matchesService';
-import type { Match } from '@/types/match';
-import { usePredictions } from '../../contexts/PredictionsContext';
-import { calculateTotalPredictionPoints } from '../../utils/scoring';
+import { MatchCard } from "@/components/MatchCard";
+import { ScreenHeader } from "@/components/ScreenHeader";
+import { useAuth } from "@/contexts/AuthContext";
+import { getGroupPointAdjustments } from "@/services/groupAdjustmentsService";
+import { getCurrentGroup } from "@/services/groupsService";
+import { getMatches } from "@/services/matchesService";
+import type { Match } from "@/types/match";
+import { usePredictions } from "../../contexts/PredictionsContext";
+import { calculateTotalPredictionPoints } from "../../utils/scoring";
 
-type PredictionFilter = 'pending' | 'predicted';
+type PredictionFilter = "pending" | "predicted";
 
 function parseMatchDate(match: Match) {
-  const [day, month, year] = match.date.split('/');
-  const [hour, minute] = match.kickoffTime.split(':');
+  const [day, month, year] = match.date.split("/");
+  const [hour, minute] = match.kickoffTime.split(":");
 
   return new Date(
     Number(year),
     Number(month) - 1,
     Number(day),
     Number(hour),
-    Number(minute)
+    Number(minute),
   ).getTime();
 }
 
@@ -46,15 +46,15 @@ function isPlaceholderTeam(teamName: string) {
   const cleanTeamName = teamName.trim().toLowerCase();
 
   return (
-    cleanTeamName.includes('tbd') ||
-    cleanTeamName.includes('por definir') ||
-    cleanTeamName.includes('winner') ||
-    cleanTeamName.includes('ganador') ||
-    cleanTeamName.includes('1st group') ||
-    cleanTeamName.includes('2nd group') ||
-    cleanTeamName.includes('3rd group') ||
-    cleanTeamName.includes('local') ||
-    cleanTeamName.includes('visitante')
+    cleanTeamName.includes("tbd") ||
+    cleanTeamName.includes("por definir") ||
+    cleanTeamName.includes("winner") ||
+    cleanTeamName.includes("ganador") ||
+    cleanTeamName.includes("1st group") ||
+    cleanTeamName.includes("2nd group") ||
+    cleanTeamName.includes("3rd group") ||
+    cleanTeamName.includes("local") ||
+    cleanTeamName.includes("visitante")
   );
 }
 
@@ -75,14 +75,14 @@ function getEmptyTitle({
   selectedFilter: PredictionFilter;
 }) {
   if (isLoadingMatches) {
-    return 'Cargando predicciones...';
+    return "Cargando predicciones...";
   }
 
-  if (selectedFilter === 'pending') {
-    return 'No tienes partidos por hacer';
+  if (selectedFilter === "pending") {
+    return "No tienes partidos por hacer";
   }
 
-  return 'No tienes predicciones guardadas';
+  return "No tienes predicciones guardadas";
 }
 
 function getEmptyText({
@@ -93,14 +93,14 @@ function getEmptyText({
   selectedFilter: PredictionFilter;
 }) {
   if (isLoadingMatches) {
-    return 'Estamos revisando tus partidos y predicciones guardadas.';
+    return "Estamos revisando tus partidos y predicciones guardadas.";
   }
 
-  if (selectedFilter === 'pending') {
-    return 'Cuando haya partidos confirmados sin predicción, aparecerán aquí.';
+  if (selectedFilter === "pending") {
+    return "Cuando haya partidos confirmados sin predicción, aparecerán aquí.";
   }
 
-  return 'Cuando guardes una predicción, aparecerá en esta sección.';
+  return "Cuando guardes una predicción, aparecerá en esta sección.";
 }
 
 export default function PredictionsScreen() {
@@ -112,7 +112,7 @@ export default function PredictionsScreen() {
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [manualPoints, setManualPoints] = useState(0);
   const [selectedFilter, setSelectedFilter] =
-    useState<PredictionFilter>('pending');
+    useState<PredictionFilter>("pending");
 
   const loadMatches = useCallback(async () => {
     setIsLoadingMatches(true);
@@ -156,7 +156,11 @@ export default function PredictionsScreen() {
     try {
       setIsRefreshing(true);
 
-      await Promise.all([loadMatches(), reloadPredictions(), loadManualPoints()]);
+      await Promise.all([
+        loadMatches(),
+        reloadPredictions(),
+        loadManualPoints(),
+      ]);
     } finally {
       setIsRefreshing(false);
     }
@@ -169,37 +173,37 @@ export default function PredictionsScreen() {
 
   function showScoringRules() {
     Alert.alert(
-      'Reglas de puntuación',
-      'Resultado exacto: 3 puntos\nGanador o empate correcto: 1 punto\nResultado incorrecto: 0 puntos'
+      "Reglas de puntuación",
+      "∙Marcador exacto: 9 puntos\n ∙Ganador o empate correcto + diferencia correcta: 4 puntos\n ∙Ganador o empate correcto: 3 puntos\n ∙Resultado incorrecto: 0 puntos",
     );
   }
 
   const predictedMatches = allMatches.filter((match) =>
-    Boolean(predictions[match.id])
+    Boolean(predictions[match.id]),
   );
 
   const availableMatchesWithoutPrediction = sortMatchesByDate(
     allMatches.filter(
       (match) =>
-        match.status === 'Por jugar' &&
+        match.status === "Por jugar" &&
         isConfirmedMatch(match) &&
-        !predictions[match.id]
-    )
+        !predictions[match.id],
+    ),
   );
 
   const matchesWithPrediction = sortMatchesByDate(
-    predictedMatches.filter(isConfirmedMatch)
+    predictedMatches.filter(isConfirmedMatch),
   );
 
   const predictionPoints = calculateTotalPredictionPoints(
     allMatches,
-    predictions
+    predictions,
   );
   const totalPoints = predictionPoints + manualPoints;
   const totalPredictions = predictedMatches.length;
 
   const visibleMatches =
-    selectedFilter === 'pending'
+    selectedFilter === "pending"
       ? availableMatchesWithoutPrediction
       : matchesWithPrediction;
 
@@ -213,7 +217,7 @@ export default function PredictionsScreen() {
             refreshing={isRefreshing}
             onRefresh={handleRefresh}
             tintColor="#111827"
-            colors={['#111827']}
+            colors={["#111827"]}
           />
         }
       >
@@ -267,15 +271,15 @@ export default function PredictionsScreen() {
           <Pressable
             style={({ pressed }) => [
               styles.filterButton,
-              selectedFilter === 'pending' && styles.activeFilterButton,
+              selectedFilter === "pending" && styles.activeFilterButton,
               pressed && styles.buttonPressed,
             ]}
-            onPress={() => setSelectedFilter('pending')}
+            onPress={() => setSelectedFilter("pending")}
           >
             <Text
               style={[
                 styles.filterButtonText,
-                selectedFilter === 'pending' && styles.activeFilterButtonText,
+                selectedFilter === "pending" && styles.activeFilterButtonText,
               ]}
             >
               Por hacer
@@ -285,16 +289,15 @@ export default function PredictionsScreen() {
           <Pressable
             style={({ pressed }) => [
               styles.filterButton,
-              selectedFilter === 'predicted' && styles.activeFilterButton,
+              selectedFilter === "predicted" && styles.activeFilterButton,
               pressed && styles.buttonPressed,
             ]}
-            onPress={() => setSelectedFilter('predicted')}
+            onPress={() => setSelectedFilter("predicted")}
           >
             <Text
               style={[
                 styles.filterButtonText,
-                selectedFilter === 'predicted' &&
-                  styles.activeFilterButtonText,
+                selectedFilter === "predicted" && styles.activeFilterButtonText,
               ]}
             >
               Con predicción
@@ -304,12 +307,12 @@ export default function PredictionsScreen() {
 
         <View style={styles.sectionHeader}>
           <Text style={styles.sectionTitle}>
-            {selectedFilter === 'pending' ? 'Por hacer' : 'Con predicción'}
+            {selectedFilter === "pending" ? "Por hacer" : "Con predicción"}
           </Text>
           <Text style={styles.sectionDescription}>
-            {selectedFilter === 'pending'
-              ? 'Partidos confirmados donde todavía puedes guardar una predicción.'
-              : 'Partidos donde ya guardaste un marcador. Desliza hacia abajo para actualizar.'}
+            {selectedFilter === "pending"
+              ? "Partidos confirmados donde todavía puedes guardar una predicción."
+              : "Partidos donde ya guardaste un marcador. Desliza hacia abajo para actualizar."}
           </Text>
         </View>
 
@@ -343,7 +346,7 @@ export default function PredictionsScreen() {
 const styles = StyleSheet.create({
   screen: {
     flex: 1,
-    backgroundColor: '#F9FAFB',
+    backgroundColor: "#F9FAFB",
   },
   content: {
     paddingHorizontal: 24,
@@ -351,63 +354,63 @@ const styles = StyleSheet.create({
     paddingBottom: 24,
   },
   summaryCard: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: "#FFFFFF",
     borderRadius: 20,
     padding: 18,
     borderWidth: 1,
-    borderColor: '#E5E7EB',
+    borderColor: "#E5E7EB",
     marginBottom: 16,
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
   },
   summaryItem: {
     flex: 1,
-    alignItems: 'center',
+    alignItems: "center",
   },
   summaryValue: {
     fontSize: 26,
-    fontWeight: '900',
-    color: '#111827',
+    fontWeight: "900",
+    color: "#111827",
   },
   summaryLabel: {
     marginTop: 4,
     fontSize: 12,
-    fontWeight: '800',
-    color: '#6B7280',
-    textAlign: 'center',
+    fontWeight: "800",
+    color: "#6B7280",
+    textAlign: "center",
   },
   summaryDivider: {
     width: 1,
     height: 42,
-    backgroundColor: '#E5E7EB',
+    backgroundColor: "#E5E7EB",
   },
   rulesRow: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: "#FFFFFF",
     borderRadius: 18,
     paddingVertical: 12,
     paddingHorizontal: 16,
     borderWidth: 1,
-    borderColor: '#E5E7EB',
+    borderColor: "#E5E7EB",
     marginBottom: 14,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
   },
   rulesTitle: {
     fontSize: 17,
-    fontWeight: '900',
-    color: '#111827',
+    fontWeight: "900",
+    color: "#111827",
   },
   infoButton: {
     width: 38,
     height: 38,
     borderRadius: 999,
-    backgroundColor: '#F3F4F6',
-    alignItems: 'center',
-    justifyContent: 'center',
+    backgroundColor: "#F3F4F6",
+    alignItems: "center",
+    justifyContent: "center",
   },
   filtersRow: {
-    flexDirection: 'row',
+    flexDirection: "row",
     gap: 10,
     marginBottom: 18,
   },
@@ -415,60 +418,60 @@ const styles = StyleSheet.create({
     flex: 1,
     height: 44,
     borderRadius: 999,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: "#FFFFFF",
     borderWidth: 1,
-    borderColor: '#E5E7EB',
-    alignItems: 'center',
-    justifyContent: 'center',
+    borderColor: "#E5E7EB",
+    alignItems: "center",
+    justifyContent: "center",
   },
   activeFilterButton: {
-    backgroundColor: '#111827',
-    borderColor: '#111827',
+    backgroundColor: "#111827",
+    borderColor: "#111827",
   },
   filterButtonText: {
     fontSize: 14,
-    fontWeight: '900',
-    color: '#6B7280',
+    fontWeight: "900",
+    color: "#6B7280",
   },
   activeFilterButtonText: {
-    color: '#FFFFFF',
+    color: "#FFFFFF",
   },
   sectionHeader: {
     marginBottom: 10,
   },
   sectionTitle: {
     fontSize: 20,
-    fontWeight: '900',
-    color: '#111827',
+    fontWeight: "900",
+    color: "#111827",
   },
   sectionDescription: {
     marginTop: 4,
     fontSize: 14,
     lineHeight: 20,
-    fontWeight: '600',
-    color: '#6B7280',
+    fontWeight: "600",
+    color: "#6B7280",
   },
   matchesList: {
     gap: 14,
   },
   emptyCard: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: "#FFFFFF",
     borderRadius: 20,
     padding: 18,
     borderWidth: 1,
-    borderColor: '#E5E7EB',
+    borderColor: "#E5E7EB",
     marginTop: 8,
   },
   emptyTitle: {
     fontSize: 18,
-    fontWeight: '900',
-    color: '#111827',
+    fontWeight: "900",
+    color: "#111827",
     marginBottom: 8,
   },
   emptyText: {
     fontSize: 14,
     lineHeight: 20,
-    color: '#6B7280',
+    color: "#6B7280",
   },
   buttonPressed: {
     opacity: 0.75,
