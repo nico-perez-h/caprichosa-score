@@ -11,14 +11,22 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
+import { PenaltyPredictionCard } from "@/components/PenaltyPredictionCard";
 import { PredictionCard } from "@/components/PredictionCard";
 import { PredictionPointsSummary } from "@/components/PredictionPointsSummary";
 import { PredictionStatusNotice } from "@/components/PredictionStatusNotice";
 import { ScreenHeader } from "@/components/ScreenHeader";
 import { StatusBadge } from "@/components/StatusBadge";
+import { useAuth } from "../../contexts/AuthContext";
 import { usePredictions } from "../../contexts/PredictionsContext";
 import { getCurrentGroup } from "../../services/groupsService";
 import { getMatchById } from "../../services/matchesService";
+import {
+  deleteUserPenaltyPrediction,
+  getUserPenaltyPredictionByMatchId,
+  upsertUserPenaltyPrediction,
+  type UserPenaltyPrediction,
+} from "../../services/penaltyPredictionsService";
 import type { Group } from "../../types/group";
 import type { Match } from "../../types/match";
 
@@ -113,6 +121,46 @@ function getPredictionLockText({
   return `Las predicciones de este grupo se cierran ${activeGroup.predictionLockMinutes} minutos antes del inicio del partido.`;
 }
 
+function normalizeText(text: string) {
+  return text
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "");
+}
+
+function isKnockoutMatch(match: Match) {
+  const textToCheck = normalizeText(
+    `${match.group} ${match.tournament} ${match.homeTeam} ${match.awayTeam}`,
+  );
+
+  const knockoutKeywords = [
+    "round of 32",
+    "round 32",
+    "r32",
+    "dieciseisavos",
+    "16avos",
+    "round of 16",
+    "round 16",
+    "r16",
+    "octavos",
+    "quarter",
+    "quarter-final",
+    "quarter final",
+    "cuartos",
+    "semifinal",
+    "semi-final",
+    "semi final",
+    "third place",
+    "tercer lugar",
+    "3rd place",
+    "final",
+  ];
+
+  return knockoutKeywords.some((keyword) =>
+    textToCheck.includes(normalizeText(keyword)),
+  );
+}
+
 function TeamNameWithFlag({
   teamName,
   flagUrl,
@@ -137,6 +185,7 @@ function TeamNameWithFlag({
 
 export default function MatchDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
+  const { user } = useAuth();
   const {
     getPrediction,
     savePrediction: savePredictionInStore,
@@ -145,9 +194,13 @@ export default function MatchDetailScreen() {
 
   const [match, setMatch] = useState<Match | null>(null);
   const [activeGroup, setActiveGroup] = useState<Group | null>(null);
+  const [penaltyPrediction, setPenaltyPrediction] =
+    useState<UserPenaltyPrediction | null>(null);
   const [isLoadingMatch, setIsLoadingMatch] = useState(true);
   const [homeScore, setHomeScore] = useState(0);
   const [awayScore, setAwayScore] = useState(0);
+  const [homePenaltyScore, setHomePenaltyScore] = useState(0);
+  const [awayPenaltyScore, setAwayPenaltyScore] = useState(0);
 
   useEffect(() => {
     async function loadMatch() {
@@ -158,31 +211,63 @@ export default function MatchDetailScreen() {
 
       setIsLoadingMatch(true);
 
-      const [loadedMatch, loadedGroup] = await Promise.all([
-        getMatchById(id),
-        getCurrentGroup(),
-      ]);
+      try {
+        const [loadedMatch, loadedGroup] = await Promise.all([
+          getMatchById(id),
+          getCurrentGroup(),
+        ]);
 
-      setMatch(loadedMatch);
-      setActiveGroup(loadedGroup);
+        setMatch(loadedMatch);
+        setActiveGroup(loadedGroup);
 
-      if (loadedMatch) {
-        const savedPrediction = getPrediction(loadedMatch.id);
+        if (loadedMatch) {
+          const savedPrediction = getPrediction(loadedMatch.id);
 
-        if (savedPrediction) {
-          setHomeScore(savedPrediction.homeScore);
-          setAwayScore(savedPrediction.awayScore);
-        } else {
-          setHomeScore(0);
-          setAwayScore(0);
+          if (savedPrediction) {
+            setHomeScore(savedPrediction.homeScore);
+            setAwayScore(savedPrediction.awayScore);
+          } else {
+            setHomeScore(0);
+            setAwayScore(0);
+          }
+
+          if (user && loadedGroup) {
+            const savedPenaltyPrediction =
+              await getUserPenaltyPredictionByMatchId({
+                userId: user.id,
+                groupId: loadedGroup.id,
+                matchId: loadedMatch.id,
+              });
+
+            setPenaltyPrediction(savedPenaltyPrediction);
+
+            if (savedPenaltyPrediction) {
+              setHomePenaltyScore(
+                savedPenaltyPrediction.home_penalty_score,
+              );
+              setAwayPenaltyScore(
+                savedPenaltyPrediction.away_penalty_score,
+              );
+            } else {
+              setHomePenaltyScore(0);
+              setAwayPenaltyScore(0);
+            }
+          }
         }
-      }
+      } catch (error) {
+        const errorMessage =
+          error instanceof Error
+            ? error.message
+            : "No se pudo cargar el partido.";
 
-      setIsLoadingMatch(false);
+        Alert.alert("Error", errorMessage);
+      } finally {
+        setIsLoadingMatch(false);
+      }
     }
 
     loadMatch();
-  }, [id, getPrediction]);
+  }, [id, getPrediction, user]);
 
   if (isLoadingMatch) {
     return (
@@ -219,6 +304,10 @@ export default function MatchDetailScreen() {
     activeGroup,
   });
   const locationText = getLocationText(currentMatch);
+  const isKnockout = isKnockoutMatch(currentMatch);
+  const isCurrentPredictionDraw = homeScore === awayScore;
+  const shouldShowPenaltyPrediction =
+    isKnockout && isCurrentPredictionDraw && !!activeGroup && !!user;
 
   function decreaseHomeScore() {
     setHomeScore((currentScore) => Math.max(0, currentScore - 1));
@@ -236,7 +325,39 @@ export default function MatchDetailScreen() {
     setAwayScore((currentScore) => currentScore + 1);
   }
 
-  function savePrediction() {
+  function decreaseHomePenaltyScore() {
+    setHomePenaltyScore((currentScore) => Math.max(0, currentScore - 1));
+  }
+
+  function increaseHomePenaltyScore() {
+    setHomePenaltyScore((currentScore) => currentScore + 1);
+  }
+
+  function decreaseAwayPenaltyScore() {
+    setAwayPenaltyScore((currentScore) => Math.max(0, currentScore - 1));
+  }
+
+  function increaseAwayPenaltyScore() {
+    setAwayPenaltyScore((currentScore) => currentScore + 1);
+  }
+
+  async function deletePenaltyPredictionSilently() {
+    if (!user || !activeGroup || !penaltyPrediction) {
+      return;
+    }
+
+    await deleteUserPenaltyPrediction({
+      userId: user.id,
+      groupId: activeGroup.id,
+      matchId: currentMatch.id,
+    });
+
+    setPenaltyPrediction(null);
+    setHomePenaltyScore(0);
+    setAwayPenaltyScore(0);
+  }
+
+  async function savePrediction() {
     if (isPredictionLocked) {
       Alert.alert(
         "Predicciones cerradas",
@@ -245,19 +366,32 @@ export default function MatchDetailScreen() {
       return;
     }
 
-    savePredictionInStore({
-      matchId: currentMatch.id,
-      homeScore,
-      awayScore,
-    });
+    try {
+      await savePredictionInStore({
+        matchId: currentMatch.id,
+        homeScore,
+        awayScore,
+      });
 
-    Alert.alert(
-      "Predicción guardada",
-      `${currentMatch.homeTeam} ${homeScore} - ${awayScore} ${currentMatch.awayTeam}`,
-    );
+      if (homeScore !== awayScore) {
+        await deletePenaltyPredictionSilently();
+      }
+
+      Alert.alert(
+        "Predicción guardada",
+        `${currentMatch.homeTeam} ${homeScore} - ${awayScore} ${currentMatch.awayTeam}`,
+      );
+    } catch (error) {
+      const errorMessage =
+        error instanceof Error
+          ? error.message
+          : "No se pudo guardar la predicción.";
+
+      Alert.alert("Error", errorMessage);
+    }
   }
 
-  function deletePrediction() {
+  async function deletePrediction() {
     if (isPredictionLocked) {
       Alert.alert(
         "Predicciones cerradas",
@@ -266,11 +400,106 @@ export default function MatchDetailScreen() {
       return;
     }
 
-    deletePredictionInStore(currentMatch.id);
-    setHomeScore(0);
-    setAwayScore(0);
+    try {
+      await deletePredictionInStore(currentMatch.id);
+      await deletePenaltyPredictionSilently();
 
-    Alert.alert("Predicción eliminada", "Tu predicción fue eliminada.");
+      setHomeScore(0);
+      setAwayScore(0);
+
+      Alert.alert("Predicción eliminada", "Tu predicción fue eliminada.");
+    } catch (error) {
+      const errorMessage =
+        error instanceof Error
+          ? error.message
+          : "No se pudo eliminar la predicción.";
+
+      Alert.alert("Error", errorMessage);
+    }
+  }
+
+  async function savePenaltyPrediction() {
+    if (isPredictionLocked) {
+      Alert.alert(
+        "Predicciones cerradas",
+        "Ya no puedes guardar predicciones por penales para este partido.",
+      );
+      return;
+    }
+
+    if (!user || !activeGroup) {
+      Alert.alert(
+        "Grupo no disponible",
+        "Necesitas estar dentro de un grupo para guardar penales.",
+      );
+      return;
+    }
+
+    if (!isKnockout) {
+      Alert.alert(
+        "Penales no disponibles",
+        "La predicción por penales solo está disponible en eliminatorias.",
+      );
+      return;
+    }
+
+    if (homeScore !== awayScore) {
+      Alert.alert(
+        "Primero predice empate",
+        "Solo puedes predecir penales si tu marcador del partido es empate.",
+      );
+      return;
+    }
+
+    try {
+      const savedPenaltyPrediction = await upsertUserPenaltyPrediction({
+        userId: user.id,
+        groupId: activeGroup.id,
+        matchId: currentMatch.id,
+        homePenaltyScore,
+        awayPenaltyScore,
+      });
+
+      setPenaltyPrediction(savedPenaltyPrediction);
+
+      Alert.alert(
+        "Penales guardados",
+        `${currentMatch.homeTeam} ${homePenaltyScore} - ${awayPenaltyScore} ${currentMatch.awayTeam}`,
+      );
+    } catch (error) {
+      const errorMessage =
+        error instanceof Error
+          ? error.message
+          : "No se pudo guardar la predicción por penales.";
+
+      Alert.alert("Error", errorMessage);
+    }
+  }
+
+  async function deletePenaltyPrediction() {
+    if (isPredictionLocked) {
+      Alert.alert(
+        "Predicciones cerradas",
+        "Ya no puedes eliminar predicciones por penales para este partido.",
+      );
+      return;
+    }
+
+    try {
+      await deletePenaltyPredictionSilently();
+
+      Alert.alert(
+        "Penales eliminados",
+        "Tu predicción por penales fue eliminada.",
+      );
+    } catch (error) {
+      const errorMessage =
+        error instanceof Error
+          ? error.message
+          : "No se pudo eliminar la predicción por penales.";
+
+      Alert.alert("Error", errorMessage);
+    }
   }
 
   return (
@@ -402,6 +631,33 @@ export default function MatchDetailScreen() {
           onSavePrediction={savePrediction}
           onDeletePrediction={deletePrediction}
         />
+
+        {isKnockout ? (
+          <View style={styles.knockoutInfoCard}>
+            <Text style={styles.knockoutInfoTitle}>Partido eliminatorio</Text>
+            <Text style={styles.knockoutInfoText}>
+              Si pronosticas empate en los 120 minutos, podrás guardar también
+              una predicción por penales.
+            </Text>
+          </View>
+        ) : null}
+
+        {shouldShowPenaltyPrediction ? (
+          <PenaltyPredictionCard
+            homeTeam={currentMatch.homeTeam}
+            awayTeam={currentMatch.awayTeam}
+            homePenaltyScore={homePenaltyScore}
+            awayPenaltyScore={awayPenaltyScore}
+            isPredictionLocked={isPredictionLocked}
+            hasSavedPenaltyPrediction={!!penaltyPrediction}
+            onDecreaseHomePenaltyScore={decreaseHomePenaltyScore}
+            onIncreaseHomePenaltyScore={increaseHomePenaltyScore}
+            onDecreaseAwayPenaltyScore={decreaseAwayPenaltyScore}
+            onIncreaseAwayPenaltyScore={increaseAwayPenaltyScore}
+            onSavePenaltyPrediction={savePenaltyPrediction}
+            onDeletePenaltyPrediction={deletePenaltyPrediction}
+          />
+        ) : null}
       </ScrollView>
     </SafeAreaView>
   );
@@ -581,5 +837,25 @@ const styles = StyleSheet.create({
     lineHeight: 20,
     fontWeight: "600",
     color: "#6B7280",
+  },
+  knockoutInfoCard: {
+    backgroundColor: "#EEF2FF",
+    borderRadius: 20,
+    padding: 18,
+    borderWidth: 1,
+    borderColor: "#C7D2FE",
+    marginBottom: 16,
+  },
+  knockoutInfoTitle: {
+    fontSize: 17,
+    fontWeight: "900",
+    color: "#312E81",
+    marginBottom: 6,
+  },
+  knockoutInfoText: {
+    fontSize: 14,
+    lineHeight: 20,
+    fontWeight: "700",
+    color: "#4338CA",
   },
 });
