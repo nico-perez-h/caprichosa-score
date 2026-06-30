@@ -114,7 +114,8 @@ export default function RulesScreen() {
 
           <Text style={styles.paragraph}>
             Si el grupo no tiene un tiempo especial configurado, los pronósticos
-            se cerrarán cuando el partido deje de estar en estado Por jugar.
+            se cerrarán cuando el partido deje de estar en estado Por jugar y pasa a 
+            estado En vivo.
           </Text>
 
           <View style={styles.noteCard}>

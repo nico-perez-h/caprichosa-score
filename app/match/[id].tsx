@@ -17,7 +17,9 @@ import { PredictionStatusNotice } from "@/components/PredictionStatusNotice";
 import { ScreenHeader } from "@/components/ScreenHeader";
 import { StatusBadge } from "@/components/StatusBadge";
 import { usePredictions } from "../../contexts/PredictionsContext";
+import { getCurrentGroup } from "../../services/groupsService";
 import { getMatchById } from "../../services/matchesService";
+import type { Group } from "../../types/group";
 import type { Match } from "../../types/match";
 
 function getLocationText(match: Match) {
@@ -34,6 +36,81 @@ function getLocationText(match: Match) {
 
 function hasRealLocation(match: Match) {
   return getLocationText(match).length > 0;
+}
+
+function getMatchStartDate(match: Match) {
+  const [day, month, year] = match.date.split("/");
+  const [hour, minute] = match.kickoffTime.split(":");
+
+  return new Date(
+    Number(year),
+    Number(month) - 1,
+    Number(day),
+    Number(hour),
+    Number(minute),
+    0,
+  );
+}
+
+function isMatchLockedByGroupConfig({
+  match,
+  activeGroup,
+}: {
+  match: Match;
+  activeGroup: Group | null;
+}) {
+  if (match.status !== "Por jugar") {
+    return true;
+  }
+
+  if (activeGroup?.predictionLockMinutes === null) {
+    return false;
+  }
+
+  if (activeGroup?.predictionLockMinutes === undefined) {
+    return false;
+  }
+
+  const matchStartDate = getMatchStartDate(match);
+  const lockDate = new Date(
+    matchStartDate.getTime() - activeGroup.predictionLockMinutes * 60 * 1000,
+  );
+
+  return new Date().getTime() >= lockDate.getTime();
+}
+
+function getPredictionLockText({
+  match,
+  activeGroup,
+}: {
+  match: Match;
+  activeGroup: Group | null;
+}) {
+  if (match.status !== "Por jugar") {
+    return "Este partido ya no está disponible para modificar predicciones.";
+  }
+
+  if (activeGroup?.predictionLockMinutes === null) {
+    return "Este grupo usa el cierre por defecto: las predicciones se bloquean cuando el partido deja de estar Por jugar.";
+  }
+
+  if (activeGroup?.predictionLockMinutes === undefined) {
+    return "Este grupo usa el cierre por defecto: las predicciones se bloquean cuando el partido deja de estar Por jugar.";
+  }
+
+  if (activeGroup.predictionLockMinutes === 10) {
+    return "Las predicciones de este grupo se cierran 10 minutos antes del inicio del partido.";
+  }
+
+  if (activeGroup.predictionLockMinutes === 30) {
+    return "Las predicciones de este grupo se cierran 30 minutos antes del inicio del partido.";
+  }
+
+  if (activeGroup.predictionLockMinutes === 60) {
+    return "Las predicciones de este grupo se cierran 1 hora antes del inicio del partido.";
+  }
+
+  return `Las predicciones de este grupo se cierran ${activeGroup.predictionLockMinutes} minutos antes del inicio del partido.`;
 }
 
 function TeamNameWithFlag({
@@ -67,6 +144,7 @@ export default function MatchDetailScreen() {
   } = usePredictions();
 
   const [match, setMatch] = useState<Match | null>(null);
+  const [activeGroup, setActiveGroup] = useState<Group | null>(null);
   const [isLoadingMatch, setIsLoadingMatch] = useState(true);
   const [homeScore, setHomeScore] = useState(0);
   const [awayScore, setAwayScore] = useState(0);
@@ -80,9 +158,13 @@ export default function MatchDetailScreen() {
 
       setIsLoadingMatch(true);
 
-      const loadedMatch = await getMatchById(id);
+      const [loadedMatch, loadedGroup] = await Promise.all([
+        getMatchById(id),
+        getCurrentGroup(),
+      ]);
 
       setMatch(loadedMatch);
+      setActiveGroup(loadedGroup);
 
       if (loadedMatch) {
         const savedPrediction = getPrediction(loadedMatch.id);
@@ -128,7 +210,14 @@ export default function MatchDetailScreen() {
 
   const currentMatch = match;
   const savedPrediction = getPrediction(currentMatch.id);
-  const isPredictionLocked = currentMatch.status !== "Por jugar";
+  const isPredictionLocked = isMatchLockedByGroupConfig({
+    match: currentMatch,
+    activeGroup,
+  });
+  const predictionLockText = getPredictionLockText({
+    match: currentMatch,
+    activeGroup,
+  });
   const locationText = getLocationText(currentMatch);
 
   function decreaseHomeScore() {
@@ -256,6 +345,33 @@ export default function MatchDetailScreen() {
         </View>
 
         <PredictionStatusNotice status={currentMatch.status} />
+
+        <View
+          style={[
+            styles.lockInfoCard,
+            isPredictionLocked && styles.lockedInfoCard,
+          ]}
+        >
+          <Text
+            style={[
+              styles.lockInfoTitle,
+              isPredictionLocked && styles.lockedInfoTitle,
+            ]}
+          >
+            {isPredictionLocked
+              ? "Predicciones cerradas"
+              : "Cierre de predicciones"}
+          </Text>
+
+          <Text
+            style={[
+              styles.lockInfoText,
+              isPredictionLocked && styles.lockedInfoText,
+            ]}
+          >
+            {predictionLockText}
+          </Text>
+        </View>
 
         {currentMatch.status === "Finalizado" ? (
           <PredictionPointsSummary
@@ -415,6 +531,36 @@ const styles = StyleSheet.create({
     fontWeight: "600",
     color: "#6B7280",
     textAlign: "center",
+  },
+  lockInfoCard: {
+    backgroundColor: "#FFFFFF",
+    borderRadius: 20,
+    padding: 18,
+    borderWidth: 1,
+    borderColor: "#E5E7EB",
+    marginBottom: 16,
+  },
+  lockedInfoCard: {
+    backgroundColor: "#FEF2F2",
+    borderColor: "#FECACA",
+  },
+  lockInfoTitle: {
+    fontSize: 17,
+    fontWeight: "900",
+    color: "#111827",
+    marginBottom: 6,
+  },
+  lockedInfoTitle: {
+    color: "#991B1B",
+  },
+  lockInfoText: {
+    fontSize: 14,
+    lineHeight: 20,
+    fontWeight: "600",
+    color: "#6B7280",
+  },
+  lockedInfoText: {
+    color: "#7F1D1D",
   },
   pendingPointsCard: {
     backgroundColor: "#FFFFFF",

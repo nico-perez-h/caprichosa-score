@@ -4,6 +4,7 @@ export type Group = {
   inviteCode: string;
   description: string;
   activeTournaments: number;
+  predictionLockMinutes: number | null;
 };
 
 export type CreateGroupInput = {

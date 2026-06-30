@@ -24,9 +24,39 @@ import {
   getCurrentGroupData,
   leaveGroup,
   removeGroupMemberFromGroup,
+  updateGroupPredictionLockMinutes,
   type CurrentGroupData,
   type GroupMemberWithProfile,
 } from "@/services/groupsService";
+
+type LockOption = {
+  label: string;
+  description: string;
+  value: number | null;
+};
+
+const lockOptions: LockOption[] = [
+  {
+    label: "Por defecto",
+    description: "Se cierra cuando el partido ya no esté Por jugar.",
+    value: null,
+  },
+  {
+    label: "10 min antes",
+    description: "Se cierra 10 minutos antes del partido.",
+    value: 10,
+  },
+  {
+    label: "30 min antes",
+    description: "Se cierra 30 minutos antes del partido.",
+    value: 30,
+  },
+  {
+    label: "60 min antes",
+    description: "Se cierra 1 hora antes del partido.",
+    value: 60,
+  },
+];
 
 function formatAnnouncementDate(dateText: string) {
   const date = new Date(dateText);
@@ -42,6 +72,13 @@ function formatAnnouncementDate(dateText: string) {
   }).format(date);
 }
 
+function isSameLockValue(
+  firstValue: number | null,
+  secondValue: number | null,
+) {
+  return firstValue === secondValue;
+}
+
 export default function GroupScreen() {
   const { signOut } = useAuth();
 
@@ -50,6 +87,7 @@ export default function GroupScreen() {
   const [isLoadingGroup, setIsLoadingGroup] = useState(true);
   const [isLeavingOrDeleting, setIsLeavingOrDeleting] = useState(false);
   const [removingMemberId, setRemovingMemberId] = useState<string | null>(null);
+  const [isUpdatingLockMinutes, setIsUpdatingLockMinutes] = useState(false);
 
   async function loadGroup() {
     try {
@@ -61,7 +99,7 @@ export default function GroupScreen() {
 
       if (loadedGroupData) {
         const loadedAnnouncements = await getGroupAnnouncements(
-          loadedGroupData.group.id
+          loadedGroupData.group.id,
         );
 
         setAnnouncements(loadedAnnouncements);
@@ -81,7 +119,7 @@ export default function GroupScreen() {
   useFocusEffect(
     useCallback(() => {
       loadGroup();
-    }, [])
+    }, []),
   );
 
   async function handleCopyGroupCode() {
@@ -93,8 +131,42 @@ export default function GroupScreen() {
 
     Alert.alert(
       "Código copiado",
-      `El código ${groupData.group.inviteCode} fue copiado correctamente.`
+      `El código ${groupData.group.inviteCode} fue copiado correctamente.`,
     );
+  }
+
+  async function handleUpdateLockMinutes(predictionLockMinutes: number | null) {
+    if (!groupData) {
+      return;
+    }
+
+    try {
+      setIsUpdatingLockMinutes(true);
+
+      const updatedGroup = await updateGroupPredictionLockMinutes({
+        groupId: groupData.group.id,
+        predictionLockMinutes,
+      });
+
+      setGroupData({
+        ...groupData,
+        group: updatedGroup,
+      });
+
+      Alert.alert(
+        "Configuración guardada",
+        "El cierre de predicciones fue actualizado.",
+      );
+    } catch (error) {
+      const errorMessage =
+        error instanceof Error
+          ? error.message
+          : "No se pudo actualizar la configuración.";
+
+      Alert.alert("Error", errorMessage);
+    } finally {
+      setIsUpdatingLockMinutes(false);
+    }
   }
 
   function handleLeaveGroup() {
@@ -121,7 +193,7 @@ export default function GroupScreen() {
 
               Alert.alert(
                 "Saliste del grupo",
-                "Ya no perteneces a este grupo."
+                "Ya no perteneces a este grupo.",
               );
 
               await loadGroup();
@@ -137,7 +209,7 @@ export default function GroupScreen() {
             }
           },
         },
-      ]
+      ],
     );
   }
 
@@ -165,7 +237,7 @@ export default function GroupScreen() {
 
               Alert.alert(
                 "Grupo eliminado",
-                "El grupo fue eliminado correctamente."
+                "El grupo fue eliminado correctamente.",
               );
 
               setGroupData(null);
@@ -184,7 +256,7 @@ export default function GroupScreen() {
             }
           },
         },
-      ]
+      ],
     );
   }
 
@@ -215,7 +287,7 @@ export default function GroupScreen() {
 
               Alert.alert(
                 "Integrante quitado",
-                `${member.playerName} ya no pertenece a este grupo.`
+                `${member.playerName} ya no pertenece a este grupo.`,
               );
 
               await loadGroup();
@@ -231,7 +303,7 @@ export default function GroupScreen() {
             }
           },
         },
-      ]
+      ],
     );
   }
 
@@ -430,6 +502,67 @@ export default function GroupScreen() {
             <Text style={styles.enterAppButtonText}>Entrar a la app</Text>
           </Pressable>
         </View>
+
+        {isAdmin ? (
+          <View style={styles.lockConfigCard}>
+            <Text style={styles.cardTitle}>Cierre de predicciones</Text>
+            <Text style={styles.lockConfigText}>
+              Define cuándo se bloquean las predicciones para este grupo.
+            </Text>
+
+            <View style={styles.lockOptionsList}>
+              {lockOptions.map((option) => {
+                const isSelected = isSameLockValue(
+                  groupData.group.predictionLockMinutes,
+                  option.value,
+                );
+
+                return (
+                  <Pressable
+                    key={option.label}
+                    style={({ pressed }) => [
+                      styles.lockOptionButton,
+                      isSelected && styles.activeLockOptionButton,
+                      pressed && styles.buttonPressed,
+                      isUpdatingLockMinutes && styles.disabledButton,
+                    ]}
+                    onPress={() => handleUpdateLockMinutes(option.value)}
+                    disabled={isUpdatingLockMinutes || isSelected}
+                  >
+                    <View style={styles.lockOptionTextBox}>
+                      <Text
+                        style={[
+                          styles.lockOptionTitle,
+                          isSelected && styles.activeLockOptionTitle,
+                        ]}
+                      >
+                        {option.label}
+                      </Text>
+
+                      <Text
+                        style={[
+                          styles.lockOptionDescription,
+                          isSelected && styles.activeLockOptionDescription,
+                        ]}
+                      >
+                        {option.description}
+                      </Text>
+                    </View>
+
+                    <Text
+                      style={[
+                        styles.lockOptionCheck,
+                        isSelected && styles.activeLockOptionCheck,
+                      ]}
+                    >
+                      {isSelected ? "✓" : ""}
+                    </Text>
+                  </Pressable>
+                );
+              })}
+            </View>
+          </View>
+        ) : null}
 
         <View style={styles.statsGrid}>
           <View style={styles.statCard}>
@@ -708,6 +841,69 @@ const styles = StyleSheet.create({
   myGroupsButtonText: {
     fontSize: 15,
     fontWeight: "900",
+    color: "#FFFFFF",
+  },
+  lockConfigCard: {
+    backgroundColor: "#FFFFFF",
+    borderRadius: 20,
+    padding: 18,
+    borderWidth: 1,
+    borderColor: "#E5E7EB",
+    marginBottom: 16,
+  },
+  lockConfigText: {
+    fontSize: 14,
+    lineHeight: 20,
+    fontWeight: "600",
+    color: "#6B7280",
+    marginBottom: 12,
+  },
+  lockOptionsList: {
+    gap: 10,
+  },
+  lockOptionButton: {
+    borderRadius: 16,
+    backgroundColor: "#F9FAFB",
+    borderWidth: 1,
+    borderColor: "#E5E7EB",
+    padding: 14,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+  },
+  activeLockOptionButton: {
+    backgroundColor: "#111827",
+    borderColor: "#111827",
+  },
+  lockOptionTextBox: {
+    flex: 1,
+  },
+  lockOptionTitle: {
+    fontSize: 15,
+    fontWeight: "900",
+    color: "#111827",
+    marginBottom: 4,
+  },
+  activeLockOptionTitle: {
+    color: "#FFFFFF",
+  },
+  lockOptionDescription: {
+    fontSize: 12,
+    lineHeight: 17,
+    fontWeight: "700",
+    color: "#6B7280",
+  },
+  activeLockOptionDescription: {
+    color: "#D1D5DB",
+  },
+  lockOptionCheck: {
+    width: 24,
+    fontSize: 18,
+    fontWeight: "900",
+    color: "#9CA3AF",
+    textAlign: "center",
+  },
+  activeLockOptionCheck: {
     color: "#FFFFFF",
   },
   emptyCard: {

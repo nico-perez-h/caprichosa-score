@@ -7,6 +7,7 @@ type SupabaseGroup = {
   description: string | null;
   join_code: string;
   created_by: string;
+  prediction_lock_minutes: number | null;
   created_at: string;
   updated_at: string;
 };
@@ -54,6 +55,7 @@ function mapSupabaseGroupToAppGroup(group: SupabaseGroup): Group {
     inviteCode: group.join_code,
     description: group.description ?? '',
     activeTournaments: 1,
+    predictionLockMinutes: group.prediction_lock_minutes,
   };
 }
 
@@ -141,6 +143,7 @@ async function getLatestMembership(userId: string) {
         description,
         join_code,
         created_by,
+        prediction_lock_minutes,
         created_at,
         updated_at
       )
@@ -186,6 +189,7 @@ async function getMembershipByGroupId({
         description,
         join_code,
         created_by,
+        prediction_lock_minutes,
         created_at,
         updated_at
       )
@@ -359,6 +363,7 @@ export async function getMyGroups(): Promise<MyGroupItem[]> {
         description,
         join_code,
         created_by,
+        prediction_lock_minutes,
         created_at,
         updated_at
       )
@@ -466,6 +471,7 @@ export async function createGroup(input: CreateGroupInput): Promise<Group> {
       description: cleanDescription,
       join_code: joinCode,
       created_by: userId,
+      prediction_lock_minutes: null,
     })
     .select()
     .single();
@@ -490,6 +496,45 @@ export async function createGroup(input: CreateGroupInput): Promise<Group> {
   });
 
   return mapSupabaseGroupToAppGroup(group as SupabaseGroup);
+}
+
+export async function updateGroupPredictionLockMinutes({
+  groupId,
+  predictionLockMinutes,
+}: {
+  groupId: string;
+  predictionLockMinutes: number | null;
+}) {
+  const userId = await getCurrentUserId();
+
+  const membership = await getMembershipByGroupId({
+    userId,
+    groupId,
+  });
+
+  if (!membership || membership.role !== 'admin') {
+    throw new Error('Solo el administrador puede cambiar esta configuración.');
+  }
+
+  if (predictionLockMinutes !== null && predictionLockMinutes < 0) {
+    throw new Error('El tiempo de cierre no puede ser negativo.');
+  }
+
+  const { data, error } = await supabase
+    .from('groups')
+    .update({
+      prediction_lock_minutes: predictionLockMinutes,
+      updated_at: new Date().toISOString(),
+    })
+    .eq('id', groupId)
+    .select()
+    .single();
+
+  if (error) {
+    throw new Error(error.message);
+  }
+
+  return mapSupabaseGroupToAppGroup(data as SupabaseGroup);
 }
 
 export async function leaveGroup(groupId: string) {
