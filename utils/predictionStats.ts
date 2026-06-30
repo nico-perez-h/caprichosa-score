@@ -15,6 +15,10 @@ function getOutcome(homeScore: number, awayScore: number): MatchOutcome {
   return 'draw';
 }
 
+function getGoalDifference(homeScore: number, awayScore: number) {
+  return homeScore - awayScore;
+}
+
 export function calculatePredictionStats(
   matches: Match[],
   predictions: Record<string, Prediction>
@@ -25,6 +29,7 @@ export function calculatePredictionStats(
   let finishedPredictions = 0;
   let exactHits = 0;
   let outcomeHits = 0;
+  let outcomeAndDifferenceHits = 0;
   let failedPredictions = 0;
 
   matches.forEach((match) => {
@@ -49,38 +54,58 @@ export function calculatePredictionStats(
       return;
     }
 
+    const predictedHomeScore = prediction.homeScore;
+    const predictedAwayScore = prediction.awayScore;
     const actualHomeScore = match.actualHomeScore;
     const actualAwayScore = match.actualAwayScore;
 
     finishedPredictions += 1;
 
     const isExactScore =
-      prediction.homeScore === actualHomeScore &&
-      prediction.awayScore === actualAwayScore;
+      predictedHomeScore === actualHomeScore &&
+      predictedAwayScore === actualAwayScore;
 
     if (isExactScore) {
       exactHits += 1;
-      totalPoints += 3;
+      totalPoints += 9;
       return;
     }
 
-    const predictionOutcome = getOutcome(
-      prediction.homeScore,
-      prediction.awayScore
-    );
-
+    const predictionOutcome = getOutcome(predictedHomeScore, predictedAwayScore);
     const actualOutcome = getOutcome(actualHomeScore, actualAwayScore);
 
-    if (predictionOutcome === actualOutcome) {
-      outcomeHits += 1;
-      totalPoints += 1;
+    const hasCorrectOutcome = predictionOutcome === actualOutcome;
+
+    if (!hasCorrectOutcome) {
+      failedPredictions += 1;
       return;
     }
 
-    failedPredictions += 1;
+    const predictionGoalDifference = getGoalDifference(
+      predictedHomeScore,
+      predictedAwayScore
+    );
+
+    const actualGoalDifference = getGoalDifference(
+      actualHomeScore,
+      actualAwayScore
+    );
+
+    const hasCorrectGoalDifference =
+      predictionGoalDifference === actualGoalDifference;
+
+    if (hasCorrectGoalDifference) {
+      outcomeAndDifferenceHits += 1;
+      totalPoints += 4;
+      return;
+    }
+
+    outcomeHits += 1;
+    totalPoints += 3;
   });
 
-  const successfulPredictions = exactHits + outcomeHits;
+  const successfulPredictions =
+    exactHits + outcomeAndDifferenceHits + outcomeHits;
 
   const accuracy =
     finishedPredictions > 0
@@ -94,6 +119,7 @@ export function calculatePredictionStats(
     finishedPredictions,
     exactHits,
     outcomeHits,
+    outcomeAndDifferenceHits,
     failedPredictions,
     accuracy,
   };

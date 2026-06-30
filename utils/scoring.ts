@@ -15,6 +15,10 @@ function getOutcome(homeScore: number, awayScore: number): MatchOutcome {
   return 'draw';
 }
 
+function getGoalDifference(homeScore: number, awayScore: number) {
+  return homeScore - awayScore;
+}
+
 export function calculatePredictionPoints(
   match: Match,
   prediction: Prediction | null
@@ -34,26 +38,46 @@ export function calculatePredictionPoints(
     return null;
   }
 
-  const exactScore =
-    prediction.homeScore === match.actualHomeScore &&
-    prediction.awayScore === match.actualAwayScore;
+  const predictedHomeScore = prediction.homeScore;
+  const predictedAwayScore = prediction.awayScore;
+  const actualHomeScore = match.actualHomeScore;
+  const actualAwayScore = match.actualAwayScore;
 
-  if (exactScore) {
-    return 3;
+  const isExactScore =
+    predictedHomeScore === actualHomeScore &&
+    predictedAwayScore === actualAwayScore;
+
+  if (isExactScore) {
+    return 9;
   }
 
-  const predictionOutcome = getOutcome(
-    prediction.homeScore,
-    prediction.awayScore
+  const predictionOutcome = getOutcome(predictedHomeScore, predictedAwayScore);
+  const actualOutcome = getOutcome(actualHomeScore, actualAwayScore);
+
+  const hasCorrectOutcome = predictionOutcome === actualOutcome;
+
+  if (!hasCorrectOutcome) {
+    return 0;
+  }
+
+  const predictionGoalDifference = getGoalDifference(
+    predictedHomeScore,
+    predictedAwayScore
   );
 
-  const actualOutcome = getOutcome(match.actualHomeScore, match.actualAwayScore);
+  const actualGoalDifference = getGoalDifference(
+    actualHomeScore,
+    actualAwayScore
+  );
 
-  if (predictionOutcome === actualOutcome) {
-    return 1;
+  const hasCorrectGoalDifference =
+    predictionGoalDifference === actualGoalDifference;
+
+  if (hasCorrectGoalDifference) {
+    return 4;
   }
 
-  return 0;
+  return 3;
 }
 
 export function calculateTotalPredictionPoints(
@@ -66,4 +90,4 @@ export function calculateTotalPredictionPoints(
 
     return totalPoints + (points ?? 0);
   }, 0);
-} 
+}
